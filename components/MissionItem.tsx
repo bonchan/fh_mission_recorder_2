@@ -21,6 +21,15 @@ export function MissionItem({ mission, onSave, onAddWaypoint, isFetching, onView
         onSave({ ...mission, waypoints: updatedWaypoints, lastUpdated: new Date().toISOString() });
     };
 
+    const deleteWaypoint = (wpId: string) => {
+        const updatedWaypoints = mission.waypoints.filter(wp => wp.id !== wpId);
+        onSave({
+            ...mission,
+            waypoints: updatedWaypoints,
+            lastUpdated: new Date().toISOString()
+        });
+    };
+
     const handleAddWaypointClick = async (e: React.MouseEvent) => {
         e.stopPropagation();
 
@@ -67,10 +76,14 @@ export function MissionItem({ mission, onSave, onAddWaypoint, isFetching, onView
 
             {isExpanded && (
                 <div style={{ padding: '12px', borderTop: '1px solid #333', background: '#181818' }}>
-
-
                     {mission.waypoints.map((wp, index) => (
-                        <WaypointItem key={wp.id} index={index} waypoint={wp} onUpdate={updateWaypoint} />
+                        <WaypointItem
+                            key={wp.id}
+                            index={index}
+                            waypoint={wp}
+                            onUpdate={updateWaypoint}
+                            onDelete={deleteWaypoint}
+                        />
                     ))}
                     <br />
                     <button
