@@ -1,0 +1,155 @@
+import React, { useState, useEffect } from 'react';
+import { MissionItem } from '@/components/MissionItem';
+import { MissionVisualizer } from '@/components/MissionVisualizer';
+import { useExtensionState } from '@/components/ExtensionStateProvider';
+import { ViewContext, Mission, MissionMap } from '@/utils/interfaces';
+import { browser } from 'wxt/browser';
+
+
+export function DashboardView() {
+    const { loadMissions } = useExtensionState();
+
+    // 1. Get IDs from URL
+    const params = new URLSearchParams(window.location.search);
+    const initialMissionId = params.get('missionId');
+    const orgId = params.get('orgId') || '';
+    const projectId = params.get('projectId') || '';
+
+    const [selectedMissionId, setSelectedMissionId] = useState(initialMissionId);
+    const [projectMissionsMap, setProjectMissionsMap] = useState<MissionMap>({});
+
+    // 2. Fetch Initial Data using Provider logic
+    useEffect(() => {
+        const fetchInitialData = async () => {
+            if (!orgId || !projectId) return;
+            const data = await loadMissions(orgId, projectId);
+            setProjectMissionsMap(data);
+        };
+        fetchInitialData();
+    }, [orgId, projectId]);
+
+    // 3. Sync Listener: If sidepanel adds a waypoint, dashboard updates immediately
+    useEffect(() => {
+        if (!orgId || !projectId) return;
+
+        const handleStorageChange = (changes: any, areaName: string) => {
+            // Using your double underscore key format
+            const expectedKey = `${orgId}__${projectId}__missions`;
+
+            if (areaName === 'local' && changes[expectedKey]) {
+                setProjectMissionsMap(changes[expectedKey].newValue || {});
+            }
+        };
+
+        browser.storage.onChanged.addListener(handleStorageChange);
+        return () => browser.storage.onChanged.removeListener(handleStorageChange);
+    }, [orgId, projectId]);
+
+    // 4. Flatten map for the sidebar list
+    const missions = Object.values(projectMissionsMap).flat();
+    const activeMission = missions.find(m => m.id === selectedMissionId);
+
+    return (
+        <div style={{
+            display: 'grid',
+            gridTemplateColumns: '280px 1fr 1.5fr',
+            height: '100vh',
+            backgroundColor: '#121212',
+            color: '#eee',
+            fontFamily: 'Inter, system-ui, sans-serif'
+        }}>
+            {/* Column 1: Missions List */}
+            <div style={{ borderRight: '1px solid #333', padding: '15px', overflowY: 'auto' }}>
+                <h3 style={{ fontSize: '11px', textTransform: 'uppercase', color: '#555', letterSpacing: '1px' }}>Project Missions</h3>
+                <div style={{ marginTop: '20px' }}>
+                    {missions.length === 0 ? (
+                        <p style={{ fontSize: '12px', color: '#555' }}>No missions found for this project.</p>
+                    ) : (
+                        missions.map(m => (
+                            <div
+                                key={m.id}
+                                onClick={() => setSelectedMissionId(m.id)}
+                                style={{
+                                    padding: '12px',
+                                    marginBottom: '8px',
+                                    borderRadius: '6px',
+                                    cursor: 'pointer',
+                                    fontSize: '13px',
+                                    transition: 'all 0.2s ease',
+                                    backgroundColor: selectedMissionId === m.id ? '#1e1e1e' : 'transparent',
+                                    border: selectedMissionId === m.id ? '1px solid #0066ff' : '1px solid transparent',
+                                    color: selectedMissionId === m.id ? '#fff' : '#aaa'
+                                }}
+                            >
+                                <div style={{ fontWeight: 'bold' }}>{m.name}</div>
+                                <div style={{ fontSize: '10px', color: '#555', marginTop: '4px' }}>
+                                    {m.device?.parent?.deviceOrganizationCallsign} • {m.waypoints.length} WPs
+                                </div>
+                            </div>
+                        ))
+                    )}
+                </div>
+            </div>
+
+            {/* Column 2: Mission Detail View */}
+            <div style={{ borderRight: '1px solid #333', padding: '20px', overflowY: 'auto' }}>
+                <h3 style={{ fontSize: '11px', textTransform: 'uppercase', color: '#555', letterSpacing: '1px' }}>Waypoint Editor</h3>
+                <div style={{ marginTop: '20px' }}>
+                    {activeMission ? (
+                        <MissionItem
+                            mission={activeMission}
+                            // TODO Important: You might want to pass a dummy save or a real one 
+                            // if you want to edit directly from the Dashboard
+                            onSave={() => { }}
+                            onAddWaypoint={() => { }}
+                            onViewDashboard={() => { }}
+                            isFetching={false}
+                            viewContext={ViewContext.DASHBOARD}
+                        />
+                    ) : (
+                        <div style={{ textAlign: 'center', marginTop: '100px', color: '#333' }}>
+                            <div style={{ fontSize: '40px', marginBottom: '10px' }}>🔭</div>
+                            Select a mission to view telemetry
+                        </div>
+                    )}
+                </div>
+            </div>
+
+            {/* Column 3: Map Legend */}
+            <div style={{ padding: '20px', backgroundColor: '#0a0a0a' }}>
+                <div style={{
+                    border: '1px solid #222',
+                    height: '100%',
+                    borderRadius: '12px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'radial-gradient(circle at center, #111 0%, #0a0a0a 100%)'
+                }}>
+                    {/* <span style={{ fontSize: '32px', marginBottom: '15px' }}>🛰️</span>
+                    <strong style={{ color: '#444', fontSize: '14px' }}>3D VISUALIZER PLACEHOLDER</strong>
+                    {activeMission && (
+                        <div style={{ textAlign: 'center', marginTop: '20px' }}>
+                            <p style={{ color: '#0066ff', fontSize: '14px', fontWeight: 'bold' }}>
+                                {activeMission.name}
+                            </p>
+                            <p style={{ color: '#555', fontSize: '11px' }}>
+                                Device: {activeMission.device?.deviceSn}
+                            </p>
+                        </div>
+                    )} */}
+
+                    {/* <Viewer
+                        full
+                        requestRenderMode={true}
+                        style={{ borderRadius: '12px', overflow: 'hidden' }}> */}
+                        {activeMission && (
+                            <MissionVisualizer mission={activeMission} />
+                        )}
+                    {/* </Viewer> */}
+                </div>
+            </div>
+        </div>
+    );
+}

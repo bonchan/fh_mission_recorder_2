@@ -1,17 +1,20 @@
-
+export enum ViewContext {
+    SIDEPANEL = 'sidepanel',
+    DASHBOARD = 'dashboard'
+}
 
 export interface MissionMap {
     [dockSn: string]: Mission[];
 }
 
-
 export interface Mission {
     id: string;
     name: string;
-    projectId: string;
     orgId: string;
+    projectId: string;
     device: Drone | undefined;
     lastUpdated: string;
+    isExpanded: boolean;
     waypoints: Waypoint[];
 }
 
@@ -27,14 +30,6 @@ export interface Waypoint {
     zoom: number;
     tag: string;
 }
-
-
-
-
-
-
-
-
 
 export interface Dock {
     index: number;
@@ -54,9 +49,6 @@ export interface Drone {
     payloadIndex: string | number;
     parent: Dock | null;
 }
-
-
-
 
 export type TagCategory = 'flight_route' | 'location' | 'asset' | 'intention';
 

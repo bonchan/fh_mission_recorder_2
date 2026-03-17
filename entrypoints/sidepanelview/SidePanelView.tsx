@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useExtensionState } from '@/components/ExtensionStateProvider';
 import { MissionItem } from '@/components/MissionItem';
-import { MissionMap, Mission, Waypoint, Dock } from '@/utils/interfaces';
+import { ViewContext, MissionMap, Mission, Waypoint, Dock } from '@/utils/interfaces';
 import { delay } from '@/utils/time';
 import { toDock, toWaypoint } from '@/utils/mapper'
 import { getProjectMissionsStorageKey } from '@/utils/utils';
@@ -115,6 +115,7 @@ export default function SidePanelView() {
       orgId: orgId,
       device: devices[selectedDeviceIndex],
       lastUpdated: new Date().toISOString(),
+      isExpanded: true,
       waypoints: [],
     };
 
@@ -218,6 +219,19 @@ export default function SidePanelView() {
     }
   };
 
+  const handleViewDashboard = async (mission: Mission) => {
+    const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+    if (!tab?.id) return;
+
+    browser.runtime.sendMessage({
+      type: 'OPEN_DASHBOARD',
+      missionId: mission.id,
+      orgId: mission.orgId,
+      projectId: mission.projectId,
+      sourceTabId: tab.id
+    });
+  };
+
 
   const displayMissions = Object.values(projectMissionsMap).flat();
 
@@ -304,8 +318,9 @@ export default function SidePanelView() {
               mission={m}
               onSave={handleUpdateMission}
               onAddWaypoint={handleAddWaypoint}
+              onViewDashboard={handleViewDashboard}
               isFetching={isFetching}
-              onViewDashboard={() => { }}
+              viewContext={ViewContext.SIDEPANEL}
             />
           ))
         )}

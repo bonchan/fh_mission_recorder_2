@@ -1,17 +1,18 @@
 import { useState, useRef } from 'react';
 import { WaypointItem } from './WaypointItem';
-import { Mission, Waypoint } from '@/utils/interfaces';
+import { ViewContext, Mission, Waypoint } from '@/utils/interfaces';
 
 interface Props {
     mission: Mission;
     onSave: (updatedMission: Mission) => void;
     onAddWaypoint: (mission: Mission) => void;
     isFetching: boolean;
-    onViewDashboard: (missionId: string) => void;
+    onViewDashboard: (mission: Mission) => void;
+    viewContext: ViewContext
 }
 
-export function MissionItem({ mission, onSave, onAddWaypoint, isFetching, onViewDashboard }: Props) {
-    const [isExpanded, setIsExpanded] = useState(false);
+export function MissionItem({ mission, onSave, onAddWaypoint, isFetching, onViewDashboard, viewContext }: Props) {
+    const [isExpanded, setIsExpanded] = useState(viewContext == ViewContext.DASHBOARD);
     const addButtonRef = useRef<HTMLButtonElement>(null);
 
     const updateWaypoint = (wpId: string, updates: Partial<Waypoint>) => {
@@ -53,24 +54,27 @@ export function MissionItem({ mission, onSave, onAddWaypoint, isFetching, onView
                     <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{mission.name} - {mission.device?.parent?.deviceOrganizationCallsign}</div>
                     <div style={{ fontSize: '10px', color: '#666' }}>{mission.waypoints.length} Waypoints</div>
                 </div>
-                {/* <button
-                    onClick={(e) => {
-                        e.stopPropagation();
-                        onViewDashboard(mission.id);
-                    }}
-                    style={{
-                        background: '#333',
-                        border: 'none',
-                        color: '#0066ff',
-                        padding: '5px 10px',
-                        borderRadius: '4px',
-                        fontSize: '11px',
-                        cursor: 'pointer',
-                        fontWeight: 'bold'
-                    }}
-                >
-                    Export ↗
-                </button> */}
+
+                {viewContext == ViewContext.SIDEPANEL &&
+                    <button
+                        onClick={(e) => {
+                            e.stopPropagation();
+                            onViewDashboard(mission);
+                        }}
+                        style={{
+                            background: '#333',
+                            border: 'none',
+                            color: '#0066ff',
+                            padding: '5px 10px',
+                            borderRadius: '4px',
+                            fontSize: '11px',
+                            cursor: 'pointer',
+                            fontWeight: 'bold'
+                        }}
+                    >
+                        Export ↗
+                    </button>
+                }
                 <div style={{ fontSize: '18px' }}>{isExpanded ? '▾' : '▸'}</div>
             </div>
 
@@ -83,36 +87,37 @@ export function MissionItem({ mission, onSave, onAddWaypoint, isFetching, onView
                             waypoint={wp}
                             onUpdate={updateWaypoint}
                             onDelete={deleteWaypoint}
+                            viewContext={viewContext}
                         />
                     ))}
-                    <br />
-                    <button
-                        ref={addButtonRef}
-                        disabled={isFetching}
-                        onClick={handleAddWaypointClick}
-                        style={{
-                            width: '100%',
-                            padding: '10px',
-                            background: isFetching ? '#333' : '#0066ff',
-                            color: isFetching ? '#888' : 'white',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: isFetching ? 'not-allowed' : 'pointer',
-                            display: 'flex',
-                            justifyContent: 'center',
-                            alignItems: 'center',
-                            gap: '10px'
-                        }}
-                    >
-                        {isFetching ? (
-                            <>
-                                <span className="spinner"></span> Wait...
-                            </>
-                        ) : (
-                            "+ Add Waypoint at Drone Position"
-                        )}
-                    </button>
-                    <br></br>
+                    {viewContext == ViewContext.SIDEPANEL &&
+                        <button
+                            ref={addButtonRef}
+                            disabled={isFetching}
+                            onClick={handleAddWaypointClick}
+                            style={{
+                                width: '100%',
+                                padding: '10px',
+                                background: isFetching ? '#333' : '#0066ff',
+                                color: isFetching ? '#888' : 'white',
+                                border: 'none',
+                                borderRadius: '4px',
+                                cursor: isFetching ? 'not-allowed' : 'pointer',
+                                display: 'flex',
+                                justifyContent: 'center',
+                                alignItems: 'center',
+                                gap: '10px'
+                            }}
+                        >
+                            {isFetching ? (
+                                <>
+                                    <span className="spinner"></span> Wait...
+                                </>
+                            ) : (
+                                "+ Add Waypoint at Drone Position"
+                            )}
+                        </button>
+                    }
                 </div>
             )}
         </div>

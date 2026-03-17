@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Waypoint, TAG_OPTIONS, TagCategory } from "@/utils/interfaces";
+import { ViewContext, Waypoint, TAG_OPTIONS, TagCategory } from "@/utils/interfaces";
 
 
 interface Props {
@@ -7,9 +7,10 @@ interface Props {
     index: number;
     onUpdate: (id: string, updates: Partial<Waypoint>) => void;
     onDelete: (id: string) => void;
+    viewContext: ViewContext
 }
 
-export function WaypointItem({ waypoint, index, onUpdate, onDelete }: Props) {
+export function WaypointItem({ waypoint, index, onUpdate, onDelete, viewContext }: Props) {
     const [isConfirming, setIsConfirming] = useState(false);
     const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -77,6 +78,7 @@ export function WaypointItem({ waypoint, index, onUpdate, onDelete }: Props) {
                 <div><span style={{ color: '#666' }}>Lon:</span> {waypoint.longitude.toFixed(6)}</div>
                 <div><span style={{ color: '#666' }}>Lat:</span> {waypoint.latitude.toFixed(6)}</div>
                 <div><span style={{ color: '#666' }}>Elev:</span> {waypoint.elevation}m</div>
+                <div><span style={{ color: '#666' }}>Height:</span> {waypoint.height}m</div>
                 <div><span style={{ color: '#666' }}>Yaw:</span> {waypoint.yaw}°</div>
                 <div><span style={{ color: '#666' }}>Pitch:</span> {waypoint.pitch}°</div>
                 <div><span style={{ color: '#666' }}>Zoom:</span> {waypoint.zoom}x</div>
