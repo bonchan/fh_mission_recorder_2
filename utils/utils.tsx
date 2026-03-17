@@ -1,3 +1,7 @@
+export const getProjectMissionsStorageKey = (orgId: string, projectId: string) => {
+  return `${orgId}__${projectId}__missions`;
+};
+
 export const extractNumber = (input: string): number => {
   const match = input.match(/#(\d+)\s/);
 

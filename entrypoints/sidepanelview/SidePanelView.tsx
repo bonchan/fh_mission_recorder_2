@@ -1,144 +1,15 @@
-// import { useExtensionState } from '@/components/ExtensionStateProvider';
-// import { MissionItem } from '@/components/MissionItem';
-// import { Mission, Waypoint } from '@/utils/interfaces'
-// import { delay } from '@/utils/time';
-
-// export default function SidePanelView() {
-//   const { missions, saveMissions } = useExtensionState();
-//   const [isFetching, setIsFetching] = useState(false);
-
-//   const createNewMission = async () => {
-//     const missionName = window.prompt("Enter Mission Name:");
-
-//     if (missionName == null || missionName == '') return
-
-//     const newMission: Mission = {
-//       id: crypto.randomUUID(),
-//       name: missionName,
-//       lastUpdated: new Date().toISOString(),
-//       waypoints: [],
-//     };
-
-//     console.log('newMission', newMission)
-
-//     const updatedMissions = [newMission, ...missions];
-//     await saveMissions(updatedMissions);
-//   };
-
-//   const handleUpdateMission = async (updatedMission: Mission) => {
-//         const updatedMissions = missions.map(m => m.id === updatedMission.id ? updatedMission : m);
-//         saveMissions(updatedMissions);
-//     };
-
-// const handleAddWaypoint = async (missionId: string) => {
-//         if ( isFetching) return;
-
-//         setIsFetching(true);
-
-//         await delay(1500);
-
-//         try {
-//             // // 1. Get the active tab
-//             // const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
-
-//             // // 2. Message the content script to get live API/UI data
-//             // const messagePayload = {
-//             //     type: 'GET_COCKPIT_DATA',
-//             //     payload: data
-//             // };
-
-//             // const liveData = await browser.tabs.sendMessage(tab.id!, messagePayload);
-
-//             // 3. Create the waypoint with REAL data
-//             const newWaypoint: Waypoint = {
-//                 id: crypto.randomUUID(),
-//                 // longitude: liveData.longitude,
-//                 // latitude: liveData.latitude,
-//                 // elevation: liveData.elevation,
-//                 // yaw: liveData.yaw,
-//                 // pitch: liveData.pitch,
-//                 // zoom: liveData.zoom,
-
-//                 longitude: 0,
-//                 latitude: 0,
-//                 elevation: 0,
-//                 yaw: 0,
-//                 pitch: 0,
-//                 zoom: 1,
-
-//                 tag: "None",
-//                 // actionGroup: [],
-//             };
-
-//             // 4. Update state and storage
-//             const updatedMissions = missions.map(m => {
-//                 if (m.id === missionId) {
-//                     return { ...m, lastUpdated: new Date().toISOString(), waypoints: [...m.waypoints, newWaypoint] };
-//                 }
-//                 return m;
-//             });
-
-//             // const storageKey = `${data.ORG_ID}_${data.PROJECT_UUID}_${data.DOCK_SN}_missions`;
-//             // await browser.storage.local.set({ [storageKey]: updatedMissions });
-//             saveMissions(updatedMissions);
-
-//         } catch (err) {
-//             console.error("Could not grab data from page. Is the DJI tab active?", err);
-//             alert("Error adding new waypoint, try again.");
-//         } finally {
-//             setIsFetching(false);
-//         }
-//     };
-
-//   return (
-//     <div style={{ padding: '20px', backgroundColor: '#121212', color: '#e0e0e0', minHeight: '100vh', fontFamily: 'sans-serif' }}>
-//       <button
-//         onClick={() => createNewMission()}
-//         style={{ width: '100%', padding: '8px', background: '#0066ff', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', marginBottom: '20px' }}
-//       >
-//         New Mission
-//       </button>
-
-//       <h3 style={{ fontSize: '1rem', marginBottom: '10px' }}>Missions (
-//         {missions.length}
-//         )</h3>
-//       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-//         {missions.length === 0 ? (
-//           <div style={{ color: '#555', fontSize: '12px', textAlign: 'center', marginTop: '20px' }}>No missions logged for this configuration.</div>
-//         ) : (
-//           missions.map((m) => (
-
-//             // <pre style={{ fontSize: '10px', color: '#888', background: '#000', padding: '10px' }}>
-//             //   {JSON.stringify(m, null, 2)}
-//             // </pre>
-
-
-//             <MissionItem
-//               key={m.id}
-//               mission={m}
-//               onSave={handleUpdateMission}
-//               onAddWaypoint={handleAddWaypoint}
-//               isFetching={isFetching}
-//               onViewDashboard={() => { }}
-//             />
-//           ))
-//         )}
-//       </div>
-//     </div>
-//   );
-
-// }
-
-
 import { useState, useEffect } from 'react';
 import { useExtensionState } from '@/components/ExtensionStateProvider';
 import { MissionItem } from '@/components/MissionItem';
-import { Mission, Waypoint, Dock } from '@/utils/interfaces';
+import { MissionMap, Mission, Waypoint, Dock } from '@/utils/interfaces';
 import { delay } from '@/utils/time';
 import { toDock, toWaypoint } from '@/utils/mapper'
+import { getProjectMissionsStorageKey } from '@/utils/utils';
 
 export default function SidePanelView() {
-  const { missions, saveMissions } = useExtensionState();
+  const { loadMissions, saveMissions } = useExtensionState();
+  const [projectMissionsMap, setProjectMissionsMap] = useState<MissionMap>({});
+
   const [isFetching, setIsFetching] = useState(false);
 
   // --- Modal State ---
@@ -162,8 +33,16 @@ export default function SidePanelView() {
         if (!tab?.id) return;
         const response = await browser.tabs.sendMessage(tab.id, { action: "GET_TOPOLOGIES" });
         console.log('response', response)
-        setProjectId(response.projectId)
-        setOrgId(response.orgId)
+
+        const pId = response.projectId;
+        const oId = response.orgId;
+
+        setProjectId(pId);
+        setOrgId(oId);
+
+        const data = await loadMissions(oId, pId);
+        setProjectMissionsMap(data);
+
         const deviceList: Drone[] = [];
 
         for (const item of response.topologies.data.list) {
@@ -186,7 +65,6 @@ export default function SidePanelView() {
           setSelectedDeviceIndex(0)
         }
 
-
       } catch (err) {
         console.error("Failed to load docks", err);
         alert("Please ensure the DJI tab is active and refreshed.");
@@ -197,7 +75,23 @@ export default function SidePanelView() {
     };
     init();
 
-  }, []);
+    const handleStorageChange = (changes: any, areaName: string) => {
+      if (areaName === 'local' && projectId && orgId) {
+        const expectedKey = getProjectMissionsStorageKey(orgId, projectId);
+        if (changes[expectedKey]) {
+          console.log("Storage updated in another tab! Syncing...");
+          setProjectMissionsMap(changes[expectedKey].newValue || {});
+        }
+      }
+    };
+
+    browser.storage.onChanged.addListener(handleStorageChange);
+
+    return () => {
+      browser.storage.onChanged.removeListener(handleStorageChange);
+    };
+
+  }, [projectId, orgId]);
 
   // 1. Open Modal and Fetch Docks via Content Script
   const openCreateModal = async () => {
@@ -209,6 +103,11 @@ export default function SidePanelView() {
     console.log(newMissionName, selectedDeviceIndex)
     if (!newMissionName) return;
 
+    const selectedDock = devices[selectedDeviceIndex];
+    const dockSn = selectedDock?.parent?.deviceSn
+
+    if (dockSn == undefined) return;
+
     const newMission: Mission = {
       id: crypto.randomUUID(),
       name: newMissionName,
@@ -219,7 +118,12 @@ export default function SidePanelView() {
       waypoints: [],
     };
 
-    await saveMissions([newMission, ...missions]);
+    const currentDockMissions = projectMissionsMap[dockSn] || [];
+    const updatedList = [newMission, ...currentDockMissions];
+    await saveMissions(orgId, projectId, dockSn, updatedList);
+    setProjectMissionsMap(prev => ({ ...prev, [dockSn]: updatedList }));
+
+    // await saveMissions([newMission, ...missions]);
 
     // Reset and Close
     setNewMissionName('');
@@ -229,55 +133,93 @@ export default function SidePanelView() {
   };
 
   const handleUpdateMission = async (updatedMission: Mission) => {
-    const updatedMissions = missions.map(m => m.id === updatedMission.id ? updatedMission : m);
-    saveMissions(updatedMissions);
+    // 1. Identify which dock this mission belongs to
+    const dockSn = updatedMission.device?.parent?.deviceSn;
+    if (!dockSn) {
+      console.error("Mission has no associated dock SN");
+      return;
+    }
+
+    // 2. Get the current list for that specific dock from your local map state
+    const currentDockMissions = projectMissionsMap[dockSn] || [];
+
+    // 3. Map through ONLY that dock's missions to update the one that changed
+    const updatedList = currentDockMissions.map(m =>
+      m.id === updatedMission.id ? updatedMission : m
+    );
+
+    // 4. Update local UI state (the map)
+    setProjectMissionsMap(prev => ({
+      ...prev,
+      [dockSn]: updatedList
+    }));
+
+    // 5. Persist to storage using the org/project/dock context
+    await saveMissions(orgId, projectId, dockSn, updatedList);
   };
 
   const handleAddWaypoint = async (mission: Mission) => {
     if (isFetching) return;
-
     setIsFetching(true);
 
-    // await delay(1500);
-    // alert(mission)
-
     try {
-
-
       const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
       if (!tab?.id) return;
-      const response = await browser.tabs.sendMessage(tab.id, { action: "GET_TOPOLOGIES" });
-      console.log('response', response)
 
-      let newWaypoint: Waypoint;
+      const response = await browser.tabs.sendMessage(tab.id, { action: "GET_TOPOLOGIES" });
+
+      // 1. Find the specific drone data in the response
+      let capturedWaypoint: Waypoint | null = null;
 
       for (const item of response.topologies.data.list) {
-        newWaypoint = toWaypoint(item);
-        // Only add to the list if the mapper returned a valid object
-        if (newWaypoint && newWaypoint.deviceSn && newWaypoint.deviceSn == mission.device?.deviceSn) {
-          break
+        const wp = toWaypoint(item);
+        if (wp && wp.deviceSn === mission.device?.deviceSn) {
+          capturedWaypoint = wp;
+          break;
         }
       }
 
-      // 4. Update state and storage
-      const updatedMissions = missions.map(m => {
+      if (!capturedWaypoint) {
+        throw new Error("Could not find telemetry for the drone assigned to this mission.");
+      }
+
+      // 2. Identify the Dock SN for storage
+      const dockSn = mission.device?.parent?.deviceSn;
+      if (!dockSn) throw new Error("Mission has no associated dock SN");
+
+      // 3. Update the specific mission within the dock's list
+      const currentDockMissions = projectMissionsMap[dockSn] || [];
+
+      const updatedList = currentDockMissions.map(m => {
         if (m.id === mission.id) {
-          return { ...m, lastUpdated: new Date().toISOString(), waypoints: [...m.waypoints, newWaypoint] };
+          return {
+            ...m,
+            lastUpdated: new Date().toISOString(),
+            waypoints: [...m.waypoints, capturedWaypoint!]
+          };
         }
         return m;
       });
 
-      // const storageKey = `${data.ORG_ID}_${data.PROJECT_UUID}_${data.DOCK_SN}_missions`;
-      // await browser.storage.local.set({ [storageKey]: updatedMissions });
-      saveMissions(updatedMissions);
+      // 4. Update local map state
+      setProjectMissionsMap(prev => ({
+        ...prev,
+        [dockSn]: updatedList
+      }));
+
+      // 5. Persist to project-specific storage
+      await saveMissions(orgId, projectId, dockSn, updatedList);
 
     } catch (err) {
-      console.error("Could not grab data from page. Is the DJI tab active?", err);
-      alert("Error adding new waypoint, try again.");
+      console.error("Waypoint addition failed:", err);
+      alert(err instanceof Error ? err.message : "Error adding waypoint.");
     } finally {
       setIsFetching(false);
     }
   };
+
+
+  const displayMissions = Object.values(projectMissionsMap).flat();
 
   return (
     <div style={{ padding: '20px', backgroundColor: '#121212', color: '#e0e0e0', minHeight: '100vh', fontFamily: 'sans-serif' }}>
@@ -348,15 +290,15 @@ export default function SidePanelView() {
         </div>
       )}
 
-      <h3 style={{ fontSize: '1rem', marginBottom: '10px' }}>Missions ({missions.length})</h3>
+      <h3 style={{ fontSize: '1rem', marginBottom: '10px' }}>Missions ({displayMissions.length})</h3>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-        {missions.length === 0 ? (
+        {displayMissions.length === 0 ? (
           <div style={{ color: '#555', fontSize: '12px', textAlign: 'center', marginTop: '20px' }}>
             No missions logged.
           </div>
         ) : (
-          missions.map((m) => (
+          displayMissions.map((m) => (
             <MissionItem
               key={m.id}
               mission={m}

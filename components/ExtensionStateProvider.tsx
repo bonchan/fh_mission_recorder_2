@@ -1,39 +1,41 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { Mission } from '@/utils/interfaces';
+import { MissionMap, Mission } from '@/utils/interfaces';
+import { getProjectMissionsStorageKey } from '@/utils/utils';
+
 
 
 interface StateContextType {
-    missions: Mission[];
-    saveMissions: (newMissions: Mission[]) => Promise<void>;
-    // liveState: LiveState;
-    // updateLiveState: (newState: Partial<LiveState>) => Promise<void>;
-    // refreshData: (targetState?: LiveState) => Promise<void>;
+    loadMissions: (orgId: string, projectId: string) => Promise<MissionMap>;
+    saveMissions: (orgId: string, projectId: string, dockSn: string, missions: Mission[]) => Promise<void>;
 }
 
 const StateContext = createContext<StateContextType | null>(null);
 
+
 export function ExtensionStateProvider({ children }: { children: React.ReactNode }) {
-    const [missions, setMissions] = useState<Mission[]>([]);
 
+    const getStorageKey = (orgId: string, projectId: string) => `local:${getProjectMissionsStorageKey(orgId, projectId)}]`;
 
-    const getStorageKey = () => {
-        return `local:missions`;
+    const loadMissions = async (orgId: string, projectId: string): Promise<MissionMap> => {
+        const key = getStorageKey(orgId, projectId);
+        const data = await storage.getItem<MissionMap>(key as any);
+        return data || {};
     };
 
-    const saveMissions = async (newMissions: Mission[]) => {
-        const key = getStorageKey();
-        if (!key) return;
-        setMissions(newMissions);
-        await storage.setItem(key as any, newMissions);
+    const saveMissions = async (orgId: string, projectId: string, dockSn: string, updatedMissions: Mission[]) => {
+        const key = getStorageKey(orgId, projectId);
+        // 1. Get existing map for this project
+        const currentMap = await loadMissions(orgId, projectId);
+        // 2. Update only the specific dock
+        const newMap = { ...currentMap, [dockSn]: updatedMissions };
+        // 3. Save back to storage
+        await storage.setItem(key as any, newMap);
     };
 
     return (
         <StateContext.Provider value={{
-            missions,
-            saveMissions,
-            // liveState, 
-            // updateLiveState, 
-            // refreshData 
+            loadMissions,
+            saveMissions
         }}>
             {children}
         </StateContext.Provider>
