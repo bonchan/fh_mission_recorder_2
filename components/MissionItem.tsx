@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { WaypointItem } from './WaypointItem';
 import { Mission, Waypoint } from '@/utils/interfaces';
 
@@ -12,12 +12,26 @@ interface Props {
 
 export function MissionItem({ mission, onSave, onAddWaypoint, isFetching, onViewDashboard }: Props) {
     const [isExpanded, setIsExpanded] = useState(false);
+    const addButtonRef = useRef<HTMLButtonElement>(null);
 
     const updateWaypoint = (wpId: string, updates: Partial<Waypoint>) => {
         const updatedWaypoints = mission.waypoints.map(wp =>
             wp.id === wpId ? { ...wp, ...updates } : wp
         );
         onSave({ ...mission, waypoints: updatedWaypoints, lastUpdated: new Date().toISOString() });
+    };
+
+    const handleAddWaypointClick = async (e: React.MouseEvent) => {
+        e.stopPropagation();
+
+        await onAddWaypoint(mission);
+
+        setTimeout(() => {
+            addButtonRef.current?.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
+        }, 100);
     };
 
     return (
@@ -46,7 +60,7 @@ export function MissionItem({ mission, onSave, onAddWaypoint, isFetching, onView
                         fontWeight: 'bold'
                     }}
                 >
-                    MAP ↗
+                    Export ↗
                 </button> */}
                 <div style={{ fontSize: '18px' }}>{isExpanded ? '▾' : '▸'}</div>
             </div>
@@ -54,12 +68,15 @@ export function MissionItem({ mission, onSave, onAddWaypoint, isFetching, onView
             {isExpanded && (
                 <div style={{ padding: '12px', borderTop: '1px solid #333', background: '#181818' }}>
 
+
+                    {mission.waypoints.map((wp, index) => (
+                        <WaypointItem key={wp.id} index={index} waypoint={wp} onUpdate={updateWaypoint} />
+                    ))}
+                    <br />
                     <button
+                        ref={addButtonRef}
                         disabled={isFetching}
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onAddWaypoint(mission);
-                        }}
+                        onClick={handleAddWaypointClick}
                         style={{
                             width: '100%',
                             padding: '10px',
@@ -83,10 +100,6 @@ export function MissionItem({ mission, onSave, onAddWaypoint, isFetching, onView
                         )}
                     </button>
                     <br></br>
-
-                    {mission.waypoints.map(wp => (
-                        <WaypointItem key={wp.id} waypoint={wp} onUpdate={updateWaypoint} />
-                    ))}
                 </div>
             )}
         </div>
