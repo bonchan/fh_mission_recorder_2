@@ -1,6 +1,5 @@
 export const DJI_COCKPIT_REGEX = /^https:\/\/fh\.dji\.com\/organization\/([^\/]+)\/project\/([^\/?]+).*[?&]droneSn=([^&]+).*[?&]gatewaySn=([^&#]+)#\/cockpit$/;
-export const DJI_PROJECT_BASE_REGEX = /^https:\/\/fh\.dji\.com\/organization\/([^\/]+)\/project\/([^\/]+)#.*$/;
-
+export const DJI_PROJECT_BASE_REGEX = /^https:\/\/fh\.dji\.com\/organization\/([^\/]+)\/project\/([^\/\?#]+)(?:[\/#\?].*)?$/;
 
 
 export const ICONS_ON = {
