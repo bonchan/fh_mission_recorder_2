@@ -14,7 +14,7 @@ const StateContext = createContext<StateContextType | null>(null);
 
 export function ExtensionStateProvider({ children }: { children: React.ReactNode }) {
 
-    const getStorageKey = (orgId: string, projectId: string) => `local:${getProjectMissionsStorageKey(orgId, projectId)}]`;
+    const getStorageKey = (orgId: string, projectId: string) => `local:${getProjectMissionsStorageKey(orgId, projectId)}`;
 
     const loadMissions = async (orgId: string, projectId: string): Promise<MissionMap> => {
         const key = getStorageKey(orgId, projectId);
