@@ -20,22 +20,28 @@ export default function SidePanelView() {
   const [selectedDeviceIndex, setSelectedDeviceIndex] = useState(0);
   const [devices, setDevices] = useState<Drone[]>([]);
 
+  const [currentUser, setCurrentUser] = useState('');
+
+
   useEffect(() => {
-    console.log("This runs only once on mount");
 
     const init = async () => {
-      // Perform initial setup, check auth, or fetch data
-      console.log("Sidepanel opened");
 
       setIsFetching(true);
       try {
         const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
         if (!tab?.id) return;
-        const response = await browser.tabs.sendMessage(tab.id, { action: "GET_TOPOLOGIES" });
-        console.log('response', response)
 
-        const pId = response.projectId;
-        const oId = response.orgId;
+        if (!currentUser){
+          const currentUserResponse = await browser.tabs.sendMessage(tab.id, { action: "GET_CURRENT_USER" });
+          setCurrentUser(currentUserResponse.currentUser.data.nickname)
+        }
+
+        const topologiesResponse = await browser.tabs.sendMessage(tab.id, { action: "GET_TOPOLOGIES" });
+
+        const pId = topologiesResponse.projectId;
+        const oId = topologiesResponse.orgId;
+        const topologies = topologiesResponse.topologies.data.list
 
         setProjectId(pId);
         setOrgId(oId);
@@ -45,7 +51,7 @@ export default function SidePanelView() {
 
         const deviceList: Drone[] = [];
 
-        for (const item of response.topologies.data.list) {
+        for (const item of topologies) {
           const drone = toDockDrone(item);
           // Only add to the list if the mapper returned a valid object
           if (drone && drone.deviceSn && drone.parent.deviceSn) {
@@ -57,8 +63,6 @@ export default function SidePanelView() {
           const indexB = b.parent?.index ?? 999;
           return indexA - indexB;
         });
-
-        console.log('deviceListSorted', deviceListSorted)
 
         setDevices(deviceListSorted);
         if (deviceListSorted.length > 0) {
@@ -79,7 +83,7 @@ export default function SidePanelView() {
       if (areaName === 'local' && projectId && orgId) {
         const expectedKey = getProjectMissionsStorageKey(orgId, projectId);
         if (changes[expectedKey]) {
-          console.log("Storage updated in another tab! Syncing...");
+          console.log("Storage updated in another tab! Syncing...", changes[expectedKey]);
           setProjectMissionsMap(changes[expectedKey].newValue || {});
         }
       }
@@ -111,6 +115,7 @@ export default function SidePanelView() {
     const newMission: Mission = {
       id: crypto.randomUUID(),
       name: newMissionName,
+      author: currentUser,
       projectId: projectId,
       orgId: orgId,
       device: devices[selectedDeviceIndex],
@@ -130,7 +135,7 @@ export default function SidePanelView() {
     setNewMissionName('');
     setShowModal(false);
 
-    console.log(newMission)
+    console.log('newMission', newMission)
   };
 
   const handleUpdateMission = async (updatedMission: Mission) => {

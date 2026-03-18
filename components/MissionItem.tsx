@@ -47,7 +47,7 @@ export function MissionItem({ mission, onSave, onAddWaypoint, isFetching, onView
     return (
         <div style={{ background: '#1e1e1e', borderRadius: '8px', marginBottom: '10px', border: '1px solid #333' }}>
             <div
-                onClick={() => setIsExpanded(!isExpanded)}
+                onClick={() => viewContext == ViewContext.SIDEPANEL ? setIsExpanded(!isExpanded) : () => { }}
                 style={{ padding: '12px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
             >
                 <div style={{ textAlign: 'left' }}>
@@ -64,7 +64,7 @@ export function MissionItem({ mission, onSave, onAddWaypoint, isFetching, onView
                         style={{
                             background: '#333',
                             border: 'none',
-                            color: '#0066ff',
+                            color: '#99b7e2',
                             padding: '5px 10px',
                             borderRadius: '4px',
                             fontSize: '11px',
@@ -72,7 +72,7 @@ export function MissionItem({ mission, onSave, onAddWaypoint, isFetching, onView
                             fontWeight: 'bold'
                         }}
                     >
-                        Export ↗
+                        Dashboard ↗
                     </button>
                 }
                 <div style={{ fontSize: '18px' }}>{isExpanded ? '▾' : '▸'}</div>

@@ -10,6 +10,7 @@ export interface MissionMap {
 export interface Mission {
     id: string;
     name: string;
+    author: string | null;
     orgId: string;
     projectId: string;
     device: Drone | undefined;

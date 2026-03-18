@@ -4,10 +4,10 @@ import { MissionVisualizer } from '@/components/MissionVisualizer';
 import { useExtensionState } from '@/components/ExtensionStateProvider';
 import { ViewContext, Mission, MissionMap } from '@/utils/interfaces';
 import { browser } from 'wxt/browser';
-
+import { getProjectMissionsStorageKey } from '@/utils/utils';
 
 export function DashboardView() {
-    const { loadMissions } = useExtensionState();
+    const { loadMissions, saveMissions } = useExtensionState();
 
     // 1. Get IDs from URL
     const params = new URLSearchParams(window.location.search);
@@ -34,8 +34,7 @@ export function DashboardView() {
 
         const handleStorageChange = (changes: any, areaName: string) => {
             // Using your double underscore key format
-            const expectedKey = `${orgId}__${projectId}__missions`;
-
+            const expectedKey = getProjectMissionsStorageKey(orgId, projectId);
             if (areaName === 'local' && changes[expectedKey]) {
                 setProjectMissionsMap(changes[expectedKey].newValue || {});
             }
@@ -44,6 +43,32 @@ export function DashboardView() {
         browser.storage.onChanged.addListener(handleStorageChange);
         return () => browser.storage.onChanged.removeListener(handleStorageChange);
     }, [orgId, projectId]);
+
+    const handleUpdateMission = async (updatedMission: Mission) => {
+        // 1. Identify which dock this mission belongs to
+        const dockSn = updatedMission.device?.parent?.deviceSn;
+        if (!dockSn) {
+            console.error("Mission has no associated dock SN");
+            return;
+        }
+
+        // 2. Get the current list for that specific dock from your local map state
+        const currentDockMissions = projectMissionsMap[dockSn] || [];
+
+        // 3. Map through ONLY that dock's missions to update the one that changed
+        const updatedList = currentDockMissions.map(m =>
+            m.id === updatedMission.id ? updatedMission : m
+        );
+
+        // 4. Update local UI state (the map)
+        setProjectMissionsMap(prev => ({
+            ...prev,
+            [dockSn]: updatedList
+        }));
+
+        // 5. Persist to storage using the org/project/dock context
+        await saveMissions(orgId, projectId, dockSn, updatedList);
+    };
 
     // 4. Flatten map for the sidebar list
     const missions = Object.values(projectMissionsMap).flat();
@@ -93,14 +118,14 @@ export function DashboardView() {
 
             {/* Column 2: Mission Detail View */}
             <div style={{ borderRight: '1px solid #333', padding: '20px', overflowY: 'auto' }}>
-                <h3 style={{ fontSize: '11px', textTransform: 'uppercase', color: '#555', letterSpacing: '1px' }}>Waypoint Editor</h3>
+                <h3 style={{ fontSize: '11px', textTransform: 'uppercase', color: '#555', letterSpacing: '1px' }}>{activeMission?.author} - Waypoint Editor</h3>
                 <div style={{ marginTop: '20px' }}>
                     {activeMission ? (
                         <MissionItem
                             mission={activeMission}
                             // TODO Important: You might want to pass a dummy save or a real one 
                             // if you want to edit directly from the Dashboard
-                            onSave={() => { }}
+                            onSave={handleUpdateMission}
                             onAddWaypoint={() => { }}
                             onViewDashboard={() => { }}
                             isFetching={false}
@@ -144,9 +169,9 @@ export function DashboardView() {
                         full
                         requestRenderMode={true}
                         style={{ borderRadius: '12px', overflow: 'hidden' }}> */}
-                        {activeMission && (
-                            <MissionVisualizer mission={activeMission} />
-                        )}
+                    {activeMission && (
+                        <MissionVisualizer mission={activeMission} />
+                    )}
                     {/* </Viewer> */}
                 </div>
             </div>
