@@ -47,19 +47,33 @@ export function MissionItem({ mission, onSave, onAddWaypoint, isFetching, onView
     return (
         <div style={{ background: '#1e1e1e', borderRadius: '8px', marginBottom: '10px', border: '1px solid #333' }}>
             <div
-                onClick={() => viewContext == ViewContext.SIDEPANEL ? setIsExpanded(!isExpanded) : () => { }}
-                style={{ padding: '12px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                onClick={() => viewContext === ViewContext.SIDEPANEL ? setIsExpanded(!isExpanded) : null}
+                style={{
+                    padding: '12px',
+                    cursor: viewContext === ViewContext.SIDEPANEL ? 'pointer' : 'default',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                }}
             >
+                {/* Left Side: Mission Info */}
                 <div style={{ textAlign: 'left' }}>
-                    <div style={{ fontWeight: 'bold', fontSize: '14px' }}>{mission.name} - {mission.device?.parent?.deviceOrganizationCallsign}</div>
-                    <div style={{ fontSize: '10px', color: '#666' }}>{mission.waypoints.length} Waypoints</div>
+                    <div style={{ fontWeight: 'bold', fontSize: '14px' }}>
+                        {mission.name} - {mission.device?.parent?.deviceOrganizationCallsign}
+                    </div>
+                    <div style={{ fontSize: '10px', color: '#666' }}>
+                        {mission.waypoints.length} Waypoints
+                    </div>
                 </div>
 
-                {viewContext == ViewContext.SIDEPANEL &&
+                {/* Right Side: Grouping Chevron and Button */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+
                     <button
                         onClick={(e) => {
                             e.stopPropagation();
-                            onViewDashboard(mission);
+                            if (viewContext === ViewContext.SIDEPANEL) onViewDashboard(mission);
+                            if (viewContext === ViewContext.DASHBOARD) console.log(mission);
                         }}
                         style={{
                             background: '#333',
@@ -72,10 +86,15 @@ export function MissionItem({ mission, onSave, onAddWaypoint, isFetching, onView
                             fontWeight: 'bold'
                         }}
                     >
-                        Dashboard ↗
+                        {viewContext === ViewContext.SIDEPANEL ? 'Dashboard' : 'Export'}
                     </button>
-                }
-                <div style={{ fontSize: '18px' }}>{isExpanded ? '▾' : '▸'}</div>
+
+                    {viewContext === ViewContext.SIDEPANEL && (
+                        <div style={{ fontSize: '18px', color: '#555', userSelect: 'none' }}>
+                            {isExpanded ? '▾' : '▸'}
+                        </div>
+                    )}
+                </div>
             </div>
 
             {isExpanded && (
