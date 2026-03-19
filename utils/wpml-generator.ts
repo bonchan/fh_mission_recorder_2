@@ -49,8 +49,6 @@ export async function generateDJIMissionFiles(mission: Mission) {
       <wpml:exitOnRCLost>${missionConfig.exitOnRCLost}</wpml:exitOnRCLost>
       <wpml:executeRCLostAction>${missionConfig.executeRCLostAction}</wpml:executeRCLostAction>
       <wpml:takeOffSecurityHeight>${missionConfig.takeOffSecurityHeight}</wpml:takeOffSecurityHeight>
-      <wpml:globalTransitionalSpeed>${missionConfig.globalTransitionalSpeed}</wpml:globalTransitionalSpeed>
-      <wpml:globalRTHHeight>${missionConfig.globalRTHHeight}</wpml:globalRTHHeight>
       ${missionConfig.takeOffRefPoint
       ? `<wpml:takeOffRefPoint>${missionConfig.takeOffRefPoint}</wpml:takeOffRefPoint>`
       : ''
@@ -59,6 +57,8 @@ export async function generateDJIMissionFiles(mission: Mission) {
       ? `<wpml:takeOffRefPointAGLHeight>${missionConfig.takeOffRefPointAGLHeight}</wpml:takeOffRefPointAGLHeight>`
       : ''
     }
+      <wpml:globalTransitionalSpeed>${missionConfig.globalTransitionalSpeed}</wpml:globalTransitionalSpeed>
+      <wpml:globalRTHHeight>${missionConfig.globalRTHHeight}</wpml:globalRTHHeight>
       <wpml:droneInfo>
         <wpml:droneEnumValue>${missionConfig.droneEnumValue}</wpml:droneEnumValue>
         <wpml:droneSubEnumValue>${missionConfig.droneSubEnumValue}</wpml:droneSubEnumValue>
@@ -125,7 +125,7 @@ export async function generateDJIMissionFiles(mission: Mission) {
     `
 
 
-  const renderPlacemark = (wp: any, index: number) => `
+  const renderPlacemarkx = (wp: any, index: number) => `
   <Placemark>
     <Point>
       <coordinates>${wp.longitude},${wp.latitude}</coordinates>
@@ -134,6 +134,13 @@ export async function generateDJIMissionFiles(mission: Mission) {
     <wpml:ellipsoidHeight>${wp.ellipsoidHeight}</wpml:ellipsoidHeight>
     <wpml:height>${wp.height}</wpml:height>
     <wpml:waypointSpeed>${wp.waypointSpeed}</wpml:waypointSpeed>
+    <wpml:waypointHeadingParam>
+          <wpml:waypointHeadingMode>followWayline</wpml:waypointHeadingMode>
+          <wpml:waypointHeadingAngle>0</wpml:waypointHeadingAngle>
+          <wpml:waypointPoiPoint>0.000000,0.000000,0.000000</wpml:waypointPoiPoint>
+          <wpml:waypointHeadingPathMode>followBadArc</wpml:waypointHeadingPathMode>
+          <wpml:waypointHeadingPoiIndex>0</wpml:waypointHeadingPoiIndex>
+        </wpml:waypointHeadingParam>
     <wpml:waypointTurnParam>
       <wpml:waypointTurnMode>toPointAndStopWithDiscontinuityCurvature</wpml:waypointTurnMode>
       <wpml:waypointTurnDampingDist>0.2</wpml:waypointTurnDampingDist>
@@ -163,6 +170,67 @@ export async function generateDJIMissionFiles(mission: Mission) {
   </Placemark>
 `;
 
+  const renderPlacemarkTemplate = (wp: any, index: number) => `
+    <Placemark>
+      <Point>
+        <coordinates>${wp.longitude},${wp.latitude}</coordinates>
+      </Point>
+      <wpml:index>${index}</wpml:index>
+      <wpml:ellipsoidHeight>${wp.ellipsoidHeight}</wpml:ellipsoidHeight>
+      <wpml:height>${wp.height}</wpml:height>
+      <wpml:useGlobalHeight>1</wpml:useGlobalHeight>
+      <wpml:useGlobalSpeed>${wp.waypointSpeed}</wpml:useGlobalSpeed>
+      <wpml:useGlobalHeadingParam>1</wpml:useGlobalHeadingParam>
+      <wpml:useGlobalTurnParam>1</wpml:useGlobalTurnParam>
+      <wpml:gimbalPitchAngle>0</wpml:gimbalPitchAngle>
+      ${wp.actionGroup ?
+      `<wpml:actionGroup>
+        <wpml:actionGroupId>${wp.actionGroup.actionGroupId}</wpml:actionGroupId>
+        <wpml:actionGroupStartIndex>${wp.actionGroup.actionGroupStartIndex}</wpml:actionGroupStartIndex>
+        <wpml:actionGroupEndIndex>${wp.actionGroup.actionGroupEndIndex}</wpml:actionGroupEndIndex>
+        <wpml:actionGroupMode>${wp.actionGroup.actionGroupMode}</wpml:actionGroupMode>
+        <wpml:actionTrigger>
+        <wpml:actionTriggerType>${wp.actionGroup.actionTrigger.actionTriggerType}</wpml:actionTriggerType>
+        </wpml:actionTrigger>
+        
+        ${wp.actionGroup.actions.map((action: any, index: number) => renderAction(action, index)).join('\n')}
+      
+      </wpml:actionGroup>` : ''
+    }
+    </Placemark>
+  `
+
+   const renderPlacemarkWaylines = (wp: any, index: number) => `
+    <Placemark>
+      <Point>
+        <coordinates>${wp.longitude},${wp.latitude}</coordinates>
+      </Point>
+      <wpml:index>${index}</wpml:index>
+      <wpml:executeHeight>${wp.height}</wpml:executeHeight>
+      <wpml:waypointSpeed>${wp.waypointSpeed}</wpml:waypointSpeed>
+      <wpml:waypointHeadingParam>
+        <wpml:waypointHeadingMode>followWayline</wpml:waypointHeadingMode>
+      </wpml:waypointHeadingParam>
+      <wpml:waypointTurnParam>
+        <wpml:waypointTurnMode>toPointAndStopWithDiscontinuityCurvature</wpml:waypointTurnMode>
+        <wpml:waypointTurnDampingDist>0</wpml:waypointTurnDampingDist>
+      </wpml:waypointTurnParam>
+      ${wp.actionGroup ?
+      `<wpml:actionGroup>
+        <wpml:actionGroupId>${wp.actionGroup.actionGroupId}</wpml:actionGroupId>
+        <wpml:actionGroupStartIndex>${wp.actionGroup.actionGroupStartIndex}</wpml:actionGroupStartIndex>
+        <wpml:actionGroupEndIndex>${wp.actionGroup.actionGroupEndIndex}</wpml:actionGroupEndIndex>
+        <wpml:actionGroupMode>${wp.actionGroup.actionGroupMode}</wpml:actionGroupMode>
+        <wpml:actionTrigger>
+        <wpml:actionTriggerType>${wp.actionGroup.actionTrigger.actionTriggerType}</wpml:actionTriggerType>
+        </wpml:actionTrigger>
+        
+        ${wp.actionGroup.actions.map((action: any, index: number) => renderAction(action, index)).join('\n')}
+      
+      </wpml:actionGroup>` : ''
+    }
+    </Placemark>
+  `
 
   const templateFolderXml = `
     <Folder>
@@ -170,16 +238,33 @@ export async function generateDJIMissionFiles(mission: Mission) {
       <wpml:templateId>0</wpml:templateId>
       <wpml:waylineCoordinateSysParam>
         <wpml:coordinateMode>WGS84</wpml:coordinateMode>
-        <wpml:heightMode>aboveGroundLevel</wpml:heightMode>
+        <wpml:heightMode>relativeToStartPoint</wpml:heightMode>
       </wpml:waylineCoordinateSysParam>
-      <wpml:autoFlightSpeed>15</wpml:autoFlightSpeed>
+      <wpml:autoFlightSpeed>10</wpml:autoFlightSpeed>
       <wpml:globalHeight>100</wpml:globalHeight>
+      <wpml:caliFlightEnable>0</wpml:caliFlightEnable>
+      <wpml:gimbalPitchMode>manual</wpml:gimbalPitchMode>
+      <wpml:globalWaypointHeadingParam>
+        <wpml:waypointHeadingMode>followWayline</wpml:waypointHeadingMode>
+        <wpml:waypointHeadingAngle>0</wpml:waypointHeadingAngle>
+        <wpml:waypointPoiPoint>0.000000,0.000000,0.000000</wpml:waypointPoiPoint>
+        <wpml:waypointHeadingPathMode>followBadArc</wpml:waypointHeadingPathMode>
+        <wpml:waypointHeadingPoiIndex>0</wpml:waypointHeadingPoiIndex>
+      </wpml:globalWaypointHeadingParam>
+      <wpml:globalWaypointTurnMode>toPointAndStopWithDiscontinuityCurvature</wpml:globalWaypointTurnMode>
+      <wpml:globalUseStraightLine>1</wpml:globalUseStraightLine>
       
-      ${readyWaypoints.map((wp, index) => renderPlacemark(wp, index)).join('\n')}
-
+      ${readyWaypoints.map((wp, index) => renderPlacemarkTemplate(wp, index)).join('\n')}
+      
       <wpml:payloadParam>
-      <wpml:payloadPositionIndex>${payloadGimbalindex}</wpml:payloadPositionIndex>
-      <wpml:imageFormat>visable,ir</wpml:imageFormat>
+        <wpml:payloadPositionIndex>${payloadGimbalindex}</wpml:payloadPositionIndex>
+        <wpml:focusMode>firstPoint</wpml:focusMode>
+        <wpml:meteringMode>average</wpml:meteringMode>
+        <wpml:returnMode>singleReturnStrongest</wpml:returnMode>
+        <wpml:samplingRate>240000</wpml:samplingRate>
+        <wpml:scanningMode>repetitive</wpml:scanningMode>
+        <wpml:imageFormat>visable,ir</wpml:imageFormat>
+        <wpml:photoSize>default_l</wpml:photoSize>
       </wpml:payloadParam>
 
     </Folder>
@@ -190,9 +275,10 @@ export async function generateDJIMissionFiles(mission: Mission) {
     <wpml:templateId>0</wpml:templateId>
     <wpml:executeHeightMode>relativeToStartPoint</wpml:executeHeightMode>
     <wpml:waylineId>0</wpml:waylineId>
-    <wpml:autoFlightSpeed>15</wpml:autoFlightSpeed>
+    <wpml:autoFlightSpeed>10</wpml:autoFlightSpeed>
+    <wpml:realTimeFollowSurfaceByFov>0</wpml:realTimeFollowSurfaceByFov>
 
-    ${readyWaypoints.map((wp, index) => renderPlacemark(wp, index)).join('\n')}
+    ${readyWaypoints.map((wp, index) => renderPlacemarkWaylines(wp, index)).join('\n')}
 
     </Folder>
   `

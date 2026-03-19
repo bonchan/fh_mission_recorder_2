@@ -13,7 +13,7 @@ export const transformWaypointsForExport = (waypoints: Waypoint[], payloadPositi
             index: index,
             waypointSpeed: 5, // Default speed
             isRisky: false,
-            ellipsoidHeight: wp.height,
+            ellipsoidHeight: wp.elevation,// FIXME wp.height,
             height: wp.elevation,
             useStraightLine: 1,
 
@@ -51,43 +51,43 @@ export const transformWaypointsForExport = (waypoints: Waypoint[], payloadPositi
             }
         });
 
-        actions.push({
-            actionId: actionId++,
-            actionActuatorFunc: "takePhoto",
-            actionActuatorFuncParam: {
-                payloadPositionIndex: payloadPositionIndex,
-                payloadLensIndex: "zoom,ir",
-                useGlobalPayloadLensIndex: 1
-            }
-        });
-
         // actions.push({
         //     actionId: actionId++,
-        //     actionActuatorFunc: "orientedShoot",
+        //     actionActuatorFunc: "takePhoto",
         //     actionActuatorFuncParam: {
-        //         gimbalPitchRotateAngle: wp.pitch,               // From recorded data
-        //         gimbalRollRotateAngle: 0,
-        //         gimbalYawRotateAngle: normalizeHeading360(wp.yaw),                   // Align with aircraftHeading for M3E
-        //         focusX: 0,                                    // Center (960/2)
-        //         focusY: 0,                                    // Center (720/2)
-        //         focusRegionWidth: 0,
-        //         focusRegionHeight: 0,
-        //         focalLength: getFocalLengthFromZoom(wp.zoom),   // Example focal length
-        //         aircraftHeading: normalizeHeading360(wp.yaw),                        // True north relative
-        //         accurateFrameValid: 0,                          // 1: AI Spot-check ON
         //         payloadPositionIndex: payloadPositionIndex,
-        //         // payloadLensIndex: "zoom,ir",                    // "wide", "zoom", or "wide,ir"
-        //         useGlobalPayloadLensIndex: 1,
-        //         targetAngle: 0,
-        //         actionUuid: crypto.randomUUID(),                // Unique ID for image association
-        //         imageWidth: 0,
-        //         imageHeight: 0,
-        //         afPos: 0,
-        //         gimbalPort: 0,
-        //         // orientedCameraType: 53,                         // 52: M30 Dual, 53: M30T Triple
-        //         orientedPhotoMode: "normalPhoto"                // "normalPhoto" or "lowLightSmartShooting"
+        //         payloadLensIndex: "zoom,ir",
+        //         useGlobalPayloadLensIndex: 1
         //     }
         // });
+
+        actions.push({
+            actionId: actionId++,
+            actionActuatorFunc: "orientedShoot",
+            actionActuatorFuncParam: {
+                gimbalPitchRotateAngle: wp.pitch,               // From recorded data
+                gimbalRollRotateAngle: 0,
+                gimbalYawRotateAngle: normalizeHeading360(wp.yaw),                   // Align with aircraftHeading for M3E
+                focusX: 0,                                    // Center (960/2)
+                focusY: 0,                                    // Center (720/2)
+                focusRegionWidth: 0,
+                focusRegionHeight: 0,
+                focalLength: getFocalLengthFromZoom(wp.zoom),   // Example focal length
+                aircraftHeading: normalizeHeading360(wp.yaw),                        // True north relative
+                accurateFrameValid: 0,                          // 1: AI Spot-check ON
+                payloadPositionIndex: payloadPositionIndex,
+                // payloadLensIndex: "zoom,ir",                    // "wide", "zoom", or "wide,ir"
+                useGlobalPayloadLensIndex: 1,
+                targetAngle: 0,
+                actionUuid: crypto.randomUUID(),                // Unique ID for image association
+                imageWidth: 0,
+                imageHeight: 0,
+                afPos: 0,
+                gimbalPort: 0,
+                // orientedCameraType: 53,                         // 52: M30 Dual, 53: M30T Triple
+                orientedPhotoMode: "normalPhoto"                // "normalPhoto" or "lowLightSmartShooting"
+            }
+        });
 
 
 
