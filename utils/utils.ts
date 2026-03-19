@@ -13,12 +13,37 @@ export const extractNumber = (input: string): number => {
   return 999;
 };
 
-export const removeEmptyLines = (str: string) => {
-  return str
-    .split(/\r?\n/)
-    .map(line => line.trimEnd())
-    .filter(line => line.trim().length > 0)
-    .join('\n');
+export const formatXML = (xml: string, indentText = '  ') => { // '  ' is 2 spaces
+  let formatted = '';
+  let pad = 0;
+
+  // 1. Strip all existing newlines and whitespace between tags to start with a clean slate
+  const cleanXml = xml.replace(/(>)\s*(<)/g, '$1\n$2');
+
+  // 2. Loop through every single tag/line
+  cleanXml.split('\n').forEach((node) => {
+    let indentDelta = 0;
+
+    if (node.match(/.+<\/\w[^>]*>$/)) {
+      // Node contains text (e.g., <tag>Text</tag>) -> No change to padding
+      indentDelta = 0;
+    } else if (node.match(/^<\/\w/)) {
+      // Closing tag (e.g., </Folder>) -> Decrease padding BEFORE adding the line
+      if (pad > 0) pad -= 1;
+    } else if (node.match(/^<\w[^>]*[^\/]>.*$/)) {
+      // Opening tag (e.g., <Folder>) -> Increase padding AFTER adding the line
+      indentDelta = 1;
+    } else {
+      // Self-closing tag or <?xml ... ?> -> No change to padding
+      indentDelta = 0;
+    }
+
+    // Apply the spaces and append the node
+    formatted += indentText.repeat(pad) + node + '\n';
+    pad += indentDelta;
+  });
+
+  return formatted.trim();
 };
 
 export const normalizeHeading360 = (heading: number): number => {

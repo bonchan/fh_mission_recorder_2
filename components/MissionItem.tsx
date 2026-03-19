@@ -10,9 +10,10 @@ interface Props {
     onAddWaypoint: (mission: Mission) => void;
     onViewDashboard: (mission: Mission) => void;
     onExportMission: (mission: Mission) => void;
+    onDebugMission: (mission: Mission) => void;
 }
 
-export function MissionItem({ mission, isFetching, viewContext, onSave, onAddWaypoint, onViewDashboard, onExportMission}: Props) {
+export function MissionItem({ mission, isFetching, viewContext, onSave, onAddWaypoint, onViewDashboard, onExportMission, onDebugMission }: Props) {
     const [isExpanded, setIsExpanded] = useState(viewContext == ViewContext.DASHBOARD);
     const addButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -69,6 +70,27 @@ export function MissionItem({ mission, isFetching, viewContext, onSave, onAddWay
 
                 {/* Right Side: Grouping Chevron and Button */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+
+                    {viewContext === ViewContext.DASHBOARD &&
+                        <button
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onDebugMission(mission);
+                            }}
+                            style={{
+                                background: '#333',
+                                border: 'none',
+                                color: '#99b7e2',
+                                padding: '5px 10px',
+                                borderRadius: '4px',
+                                fontSize: '11px',
+                                cursor: 'pointer',
+                                fontWeight: 'bold'
+                            }}
+                        >
+                            Debug
+                        </button>
+                    }
 
                     <button
                         onClick={(e) => {

@@ -327,6 +327,7 @@ export default function SidePanelView() {
               onAddWaypoint={handleAddWaypoint}
               onViewDashboard={handleViewDashboard}
               onExportMission={() => { }}
+              onDebugMission={() => { }}
             />
           ))
         )}

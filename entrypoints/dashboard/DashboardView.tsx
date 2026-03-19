@@ -11,7 +11,6 @@ import { XMLDebugModal } from '@/components/XMLDebugModal';
 export function DashboardView() {
     const { loadMissions, saveMissions } = useExtensionState();
     const [debugXml, setDebugXml] = useState<{ template: string, waylines: string } | null>(null);
-    const debugMode = true
 
     // 1. Get IDs from URL
     const params = new URLSearchParams(window.location.search);
@@ -77,24 +76,24 @@ export function DashboardView() {
     const handleExportMission = async (mission: Mission) => {
         console.log('Exporting mission', mission)
 
-        if (debugMode) {
-            const { template, waylines } = await generateDJIMissionFiles(mission)
-            console.log('template', template)
-            console.log('waylines', waylines)
-            setDebugXml({ template, waylines });
-        } else {
-            const blob = await generateDJIMission(mission);
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
+        const blob = await generateDJIMission(mission);
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
 
-            const cleanName = mission.name.replace(/[<>:"/|?*._\\]/g, '');
-            a.download = `panel--${cleanName}.kmz`;
-            a.click();
-            window.URL.revokeObjectURL(url);
-        }
+        const cleanName = mission.name.replace(/[<>:"/|?*._\\]/g, '');
+        a.download = `panel--${cleanName}.kmz`;
+        a.click();
+        window.URL.revokeObjectURL(url);
+    }
 
+    const handleDebugMission = async (mission: Mission) => {
+        console.log('Debug mission', mission)
 
+        const { template, waylines } = await generateDJIMissionFiles(mission)
+        console.log('template', template)
+        console.log('waylines', waylines)
+        setDebugXml({ template, waylines });
     }
 
     // 4. Flatten map for the sidebar list
@@ -164,6 +163,7 @@ export function DashboardView() {
                             onAddWaypoint={() => { }}
                             onViewDashboard={() => { }}
                             onExportMission={handleExportMission}
+                            onDebugMission={handleDebugMission}
                         />
                     ) : (
                         <div style={{ textAlign: 'center', marginTop: '100px', color: '#333' }}>

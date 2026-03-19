@@ -1,7 +1,7 @@
 import JSZip from 'jszip';
 import { transformWaypointsForExport } from '@/utils/mission-transformer'
 import { Mission, Waypoint } from '@/utils/interfaces';
-import { removeEmptyLines } from '@/utils/utils';
+import { formatXML } from '@/utils/utils';
 
 export async function generateDJIMission(mission: Mission) {
   const { template, waylines } = await generateDJIMissionFiles(mission)
@@ -217,8 +217,8 @@ export async function generateDJIMissionFiles(mission: Mission) {
 </kml>`;
 
   return {
-    template: removeEmptyLines(templateKml),
-    waylines: removeEmptyLines(waylinesWpml)
+    template: formatXML(templateKml),
+    waylines: formatXML(waylinesWpml)
   };
 
 
