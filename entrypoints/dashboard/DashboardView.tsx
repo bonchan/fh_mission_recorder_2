@@ -5,9 +5,13 @@ import { useExtensionState } from '@/components/ExtensionStateProvider';
 import { ViewContext, Mission, MissionMap } from '@/utils/interfaces';
 import { browser } from 'wxt/browser';
 import { getProjectMissionsStorageKey } from '@/utils/utils';
+import { generateDJIMission, generateDJIMissionFiles } from '@/utils/wpml-generator';
+import { XMLDebugModal } from '@/components/XMLDebugModal';
 
 export function DashboardView() {
     const { loadMissions, saveMissions } = useExtensionState();
+    const [debugXml, setDebugXml] = useState<{ template: string, waylines: string } | null>(null);
+    const debugMode = true
 
     // 1. Get IDs from URL
     const params = new URLSearchParams(window.location.search);
@@ -70,6 +74,29 @@ export function DashboardView() {
         await saveMissions(orgId, projectId, dockSn, updatedList);
     };
 
+    const handleExportMission = async (mission: Mission) => {
+        console.log('Exporting mission', mission)
+
+        if (debugMode) {
+            const { template, waylines } = await generateDJIMissionFiles(mission)
+            console.log('template', template)
+            console.log('waylines', waylines)
+            setDebugXml({ template, waylines });
+        } else {
+            const blob = await generateDJIMission(mission);
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+
+            const cleanName = mission.name.replace(/[<>:"/|?*._\\]/g, '');
+            a.download = `panel--${cleanName}.kmz`;
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+
+
+    }
+
     // 4. Flatten map for the sidebar list
     const missions = Object.values(projectMissionsMap).flat();
     const activeMission = missions.find(m => m.id === selectedMissionId);
@@ -83,6 +110,14 @@ export function DashboardView() {
             color: '#eee',
             fontFamily: 'Inter, system-ui, sans-serif'
         }}>
+            {debugXml && (
+                <XMLDebugModal
+                    templateKml={debugXml.template}
+                    waylinesWpml={debugXml.waylines}
+                    onClose={() => setDebugXml(null)}
+                />
+            )}
+
             {/* Column 1: Missions List */}
             <div style={{ borderRight: '1px solid #333', padding: '15px', overflowY: 'auto' }}>
                 <h3 style={{ fontSize: '11px', textTransform: 'uppercase', color: '#555', letterSpacing: '1px' }}>Project Missions</h3>
@@ -118,18 +153,17 @@ export function DashboardView() {
 
             {/* Column 2: Mission Detail View */}
             <div style={{ borderRight: '1px solid #333', padding: '20px', overflowY: 'auto' }}>
-                <h3 style={{ fontSize: '11px', textTransform: 'uppercase', color: '#555', letterSpacing: '1px' }}>{activeMission?.author} - Waypoint Editor</h3>
+                <h3 style={{ fontSize: '11px', textTransform: 'uppercase', color: '#555', letterSpacing: '1px' }}>Waypoint Editor</h3>
                 <div style={{ marginTop: '20px' }}>
                     {activeMission ? (
                         <MissionItem
                             mission={activeMission}
-                            // TODO Important: You might want to pass a dummy save or a real one 
-                            // if you want to edit directly from the Dashboard
+                            isFetching={false}
+                            viewContext={ViewContext.DASHBOARD}
                             onSave={handleUpdateMission}
                             onAddWaypoint={() => { }}
                             onViewDashboard={() => { }}
-                            isFetching={false}
-                            viewContext={ViewContext.DASHBOARD}
+                            onExportMission={handleExportMission}
                         />
                     ) : (
                         <div style={{ textAlign: 'center', marginTop: '100px', color: '#333' }}>
@@ -152,27 +186,9 @@ export function DashboardView() {
                     justifyContent: 'center',
                     background: 'radial-gradient(circle at center, #111 0%, #0a0a0a 100%)'
                 }}>
-                    {/* <span style={{ fontSize: '32px', marginBottom: '15px' }}>🛰️</span>
-                    <strong style={{ color: '#444', fontSize: '14px' }}>3D VISUALIZER PLACEHOLDER</strong>
-                    {activeMission && (
-                        <div style={{ textAlign: 'center', marginTop: '20px' }}>
-                            <p style={{ color: '#0066ff', fontSize: '14px', fontWeight: 'bold' }}>
-                                {activeMission.name}
-                            </p>
-                            <p style={{ color: '#555', fontSize: '11px' }}>
-                                Device: {activeMission.device?.deviceSn}
-                            </p>
-                        </div>
-                    )} */}
-
-                    {/* <Viewer
-                        full
-                        requestRenderMode={true}
-                        style={{ borderRadius: '12px', overflow: 'hidden' }}> */}
                     {activeMission && (
                         <MissionVisualizer mission={activeMission} />
                     )}
-                    {/* </Viewer> */}
                 </div>
             </div>
         </div>

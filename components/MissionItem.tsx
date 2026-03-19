@@ -4,14 +4,15 @@ import { ViewContext, Mission, Waypoint } from '@/utils/interfaces';
 
 interface Props {
     mission: Mission;
+    isFetching: boolean;
+    viewContext: ViewContext
     onSave: (updatedMission: Mission) => void;
     onAddWaypoint: (mission: Mission) => void;
-    isFetching: boolean;
     onViewDashboard: (mission: Mission) => void;
-    viewContext: ViewContext
+    onExportMission: (mission: Mission) => void;
 }
 
-export function MissionItem({ mission, onSave, onAddWaypoint, isFetching, onViewDashboard, viewContext }: Props) {
+export function MissionItem({ mission, isFetching, viewContext, onSave, onAddWaypoint, onViewDashboard, onExportMission}: Props) {
     const [isExpanded, setIsExpanded] = useState(viewContext == ViewContext.DASHBOARD);
     const addButtonRef = useRef<HTMLButtonElement>(null);
 
@@ -19,7 +20,7 @@ export function MissionItem({ mission, onSave, onAddWaypoint, isFetching, onView
         const updatedWaypoints = mission.waypoints.map(wp =>
             wp.id === wpId ? { ...wp, ...updates } : wp
         );
-        onSave({ ...mission, waypoints: updatedWaypoints, lastUpdated: new Date().toISOString() });
+        onSave({ ...mission, waypoints: updatedWaypoints, lastUpdated: Date.now() });
     };
 
     const deleteWaypoint = (wpId: string) => {
@@ -27,7 +28,7 @@ export function MissionItem({ mission, onSave, onAddWaypoint, isFetching, onView
         onSave({
             ...mission,
             waypoints: updatedWaypoints,
-            lastUpdated: new Date().toISOString()
+            lastUpdated: Date.now()
         });
     };
 
@@ -73,7 +74,7 @@ export function MissionItem({ mission, onSave, onAddWaypoint, isFetching, onView
                         onClick={(e) => {
                             e.stopPropagation();
                             if (viewContext === ViewContext.SIDEPANEL) onViewDashboard(mission);
-                            if (viewContext === ViewContext.DASHBOARD) console.log(mission);
+                            if (viewContext === ViewContext.DASHBOARD) onExportMission(mission);
                         }}
                         style={{
                             background: '#333',

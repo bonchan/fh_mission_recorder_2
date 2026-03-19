@@ -13,6 +13,18 @@ export const extractNumber = (input: string): number => {
   return 999;
 };
 
+export const removeEmptyLines = (str: string) => {
+  return str
+    .split(/\r?\n/)
+    .map(line => line.trimEnd())
+    .filter(line => line.trim().length > 0)
+    .join('\n');
+};
+
+export const normalizeHeading360 = (heading: number): number => {
+  return ((heading % 360) + 360) % 360;
+};
+
 export const getFocalLengthFromZoom = (
   zoomFactor: number,
   baseFovDeg: number = 84,

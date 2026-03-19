@@ -32,7 +32,7 @@ export default function SidePanelView() {
         const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
         if (!tab?.id) return;
 
-        if (!currentUser){
+        if (!currentUser) {
           const currentUserResponse = await browser.tabs.sendMessage(tab.id, { action: "GET_CURRENT_USER" });
           setCurrentUser(currentUserResponse.currentUser.data.nickname)
         }
@@ -119,7 +119,7 @@ export default function SidePanelView() {
       projectId: projectId,
       orgId: orgId,
       device: devices[selectedDeviceIndex],
-      lastUpdated: new Date().toISOString(),
+      lastUpdated: Date.now(),
       isExpanded: true,
       waypoints: [],
     };
@@ -200,7 +200,7 @@ export default function SidePanelView() {
         if (m.id === mission.id) {
           return {
             ...m,
-            lastUpdated: new Date().toISOString(),
+            lastUpdated: Date.now(),
             waypoints: [...m.waypoints, capturedWaypoint!]
           };
         }
@@ -321,11 +321,12 @@ export default function SidePanelView() {
             <MissionItem
               key={m.id}
               mission={m}
+              isFetching={isFetching}
+              viewContext={ViewContext.SIDEPANEL}
               onSave={handleUpdateMission}
               onAddWaypoint={handleAddWaypoint}
               onViewDashboard={handleViewDashboard}
-              isFetching={isFetching}
-              viewContext={ViewContext.SIDEPANEL}
+              onExportMission={() => { }}
             />
           ))
         )}

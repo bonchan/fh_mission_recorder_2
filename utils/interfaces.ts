@@ -14,7 +14,7 @@ export interface Mission {
     orgId: string;
     projectId: string;
     device: Drone | undefined;
-    lastUpdated: string;
+    lastUpdated: number;
     isExpanded: boolean;
     waypoints: Waypoint[];
 }
@@ -30,6 +30,7 @@ export interface Waypoint {
     pitch: number;
     zoom: number;
     tag: string;
+    actionGroup: any | null;
 }
 
 export interface Dock {
@@ -47,7 +48,7 @@ export interface Drone {
     deviceModelName: string;
     deviceModelKey: string;
     deviceOrganizationCallsign: string;
-    payloadIndex: string | number;
+    payloadIndex: string;
     parent: Dock | null;
 }
 
