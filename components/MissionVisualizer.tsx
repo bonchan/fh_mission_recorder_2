@@ -22,50 +22,89 @@ const PROVIDERS = {
 
 export const MissionVisualizer = ({ mission }: { mission: any }) => {
   const [provider, setProvider] = useState<keyof typeof PROVIDERS>('arcgis');
-  const zoom = 17;
+  
+  // Backing off the zoom slightly helps ensure we don't try to load 100 tiles for a long flight
+  const zoom = 17; 
 
   const sceneData = useMemo(() => {
     if (!mission?.waypoints?.length) return null;
 
+    // 1. Calculate GPS Bounds
+    let minLat = Infinity, maxLat = -Infinity;
+    let minLon = Infinity, maxLon = -Infinity;
+
+    mission.waypoints.forEach((wp: any) => {
+      if (wp.latitude < minLat) minLat = wp.latitude;
+      if (wp.latitude > maxLat) maxLat = wp.latitude;
+      if (wp.longitude < minLon) minLon = wp.longitude;
+      if (wp.longitude > maxLon) maxLon = wp.longitude;
+    });
+
+    // 2. Determine Tile Grid based on Bounds
+    const startTileX = Math.floor(lonToTile(minLon, zoom));
+    const endTileX = Math.floor(lonToTile(maxLon, zoom));
+    // Y tiles increase going South, so maxLat is the smaller Y index
+    const startTileY = Math.floor(latToTile(maxLat, zoom)); 
+    const endTileY = Math.floor(latToTile(minLat, zoom));
+
+    // Limit the grid size so we don't crash the browser if points are very far apart
+    const maxTiles = 25; // 5x5 grid max
+    if ((endTileX - startTileX + 1) * (endTileY - startTileY + 1) > maxTiles) {
+      console.warn("Mission is too large to render full map grid at this zoom level.");
+    }
+
     const first = mission.waypoints[0];
-
-    const tileX = Math.floor(lonToTile(first.longitude, zoom));
-    const tileY = Math.floor(latToTile(first.latitude, zoom));
-
-    const west = tileToLon(tileX, zoom);
-    const east = tileToLon(tileX + 1, zoom);
-    const north = tileToLat(tileY, zoom);
-    const south = tileToLat(tileY + 1, zoom);
-
     const metersPerLat = 111320;
     const metersPerLon = metersPerLat * Math.cos(first.latitude * (Math.PI / 180));
 
-    const tileWidthM = (east - west) * metersPerLon;
-    const tileHeightM = (north - south) * metersPerLat;
+    const loader = new THREE.TextureLoader();
+    const mapTiles = [];
 
-    const tileCenterLon = (west + east) / 2;
-    const tileCenterLat = (north + south) / 2;
+    // 3. Generate the Map Tiles
+    for (let x = startTileX; x <= endTileX; x++) {
+      for (let y = startTileY; y <= endTileY; y++) {
+        
+        // Safety Break
+        if (mapTiles.length >= maxTiles) break;
 
-    const offsetX = (tileCenterLon - first.longitude) * metersPerLon;
-    const offsetZ = (first.latitude - tileCenterLat) * metersPerLat;
+        const west = tileToLon(x, zoom);
+        const east = tileToLon(x + 1, zoom);
+        const north = tileToLat(y, zoom);
+        const south = tileToLat(y + 1, zoom);
 
+        const tileWidthM = (east - west) * metersPerLon;
+        const tileHeightM = (north - south) * metersPerLat;
+
+        const tileCenterLon = (west + east) / 2;
+        const tileCenterLat = (north + south) / 2;
+
+        const offsetX = (tileCenterLon - first.longitude) * metersPerLon;
+        const offsetZ = (first.latitude - tileCenterLat) * metersPerLat;
+
+        const url = PROVIDERS[provider](zoom, y, x);
+        const texture = loader.load(url);
+        texture.anisotropy = 16;
+
+        mapTiles.push({
+          id: `${x}-${y}`,
+          texture,
+          planeSize: [tileWidthM, tileHeightM] as [number, number],
+          planePosition: [offsetX, -0.05, offsetZ] as [number, number, number]
+        });
+      }
+    }
+
+    // 4. Project Local Points
     const localPoints = mission.waypoints.map((wp: any) => new THREE.Vector3(
       (wp.longitude - first.longitude) * metersPerLon,
       wp.elevation || 0,
       (first.latitude - wp.latitude) * metersPerLat
     ));
 
-    const loader = new THREE.TextureLoader();
-    const url = PROVIDERS[provider](zoom, tileY, tileX);
-    const texture = loader.load(url);
-    texture.anisotropy = 16;
-
     return {
       points: localPoints,
       center: localPoints[Math.floor(localPoints.length / 2)],
-      texture,
-      planeSize: [tileWidthM, tileHeightM],
-      planePosition: [offsetX, -0.05, offsetZ] as [number, number, number]
+      mapTiles
     };
   }, [mission, provider]);
 
@@ -83,7 +122,7 @@ export const MissionVisualizer = ({ mission }: { mission: any }) => {
           <option value="osm">Map (OpenStreetMap)</option>
         </select>
         <div style={{ background: 'rgba(0,0,0,0.6)', color: '#aaa', padding: '6px 10px', borderRadius: '4px', fontSize: '12px' }}>
-          WP: {mission.waypoints.length}
+          WP: {mission.waypoints.length} | Tiles: {sceneData.mapTiles.length}
         </div>
       </div>
 
@@ -92,13 +131,17 @@ export const MissionVisualizer = ({ mission }: { mission: any }) => {
         <ambientLight intensity={1.5} />
         <pointLight position={[100, 200, 100]} />
 
-        <Plane
-          args={[sceneData.planeSize[0], sceneData.planeSize[1]]}
-          rotation={[-Math.PI / 2, 0, 0]}
-          position={sceneData.planePosition}
-        >
-          <meshStandardMaterial map={sceneData.texture} />
-        </Plane>
+        {/* MAP GRID */}
+        {sceneData.mapTiles.map((tile) => (
+           <Plane
+            key={tile.id}
+            args={tile.planeSize}
+            rotation={[-Math.PI / 2, 0, 0]}
+            position={tile.planePosition}
+          >
+            <meshStandardMaterial map={tile.texture} />
+          </Plane>
+        ))}
 
         <Line points={sceneData.points} color="#ffff00" lineWidth={2} />
 
@@ -117,14 +160,12 @@ export const MissionVisualizer = ({ mission }: { mission: any }) => {
           </group>
         ))}
 
-        {/* Updated Controls */}
         <OrbitControls
           target={sceneData.center}
           enableDamping
           mouseButtons={{
-            LEFT: THREE.MOUSE.PAN,      // Left click to Pan
-            MIDDLE: THREE.MOUSE.ROTATE, // Middle click to Orbit
-            //RIGHT: THREE.MOUSE.DOLLY    // Right click to Zoom (optional)
+            LEFT: THREE.MOUSE.PAN,
+            MIDDLE: THREE.MOUSE.ROTATE,
           }}
         />
       </Canvas>
