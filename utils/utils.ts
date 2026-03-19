@@ -68,3 +68,14 @@ export const getFocalLengthFromZoom = (
 
   return Math.round(focalLength);
 };
+
+export function getShortestTurn(prevYaw: number, nextYaw: number): 'CW' | 'CCW' {
+  // 1. Find the raw difference
+  const diff = nextYaw - prevYaw;
+
+  // 2. Normalize the difference to always be between -180 and 180
+  const normalizedDiff = ((diff + 540) % 360) - 180;
+
+  // 3. If the normalized difference is positive, it's Clockwise
+  return normalizedDiff >= 0 ? 'CW' : 'CCW';
+}

@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Line, Sphere, Plane, PerspectiveCamera } from '@react-three/drei';
+import { OrbitControls, Line, Sphere, Plane, PerspectiveCamera, Ring, Cone } from '@react-three/drei';
 import * as THREE from 'three';
 
 // --- TILE MATH HELPERS ---
@@ -31,6 +31,36 @@ const CompassSync = ({ compassRef }: { compassRef: React.RefObject<HTMLDivElemen
     }
   });
   return null;
+};
+
+const TurnIndicator = ({ nextPointLocal, direction }: { nextPointLocal: THREE.Vector3, direction: 'CW' | 'CCW' }) => {
+  // 1. Find the midpoint relative to the current point
+  const midPoint = nextPointLocal.clone().multiplyScalar(0.5);
+
+  // Size of the arrow (in meters)
+  const radius = 4;
+
+  return (
+    <group position={midPoint}>
+      {/* Rotate -90deg on X to lay flat on the ground.
+        Scale X by -1 to instantly flip the arrow from CW to CCW 
+      */}
+      <group
+        rotation={[-Math.PI / 2, 0, 0]}
+        scale={[direction === 'CW' ? 1 : -1, 1, 1]}
+      >
+        {/* The curved line (an incomplete Ring) */}
+        <Ring args={[radius - 0.3, radius + 0.3, 32, 1, 0, Math.PI * 1.5]}>
+          <meshBasicMaterial color="#ffaa00" side={THREE.DoubleSide} transparent opacity={0.8} />
+        </Ring>
+
+        {/* The Arrow Head (placed at the 270-degree mark of the Ring) */}
+        <Cone args={[1, 2, 16]} position={[0, -radius, 0]} rotation={[0, 0, -Math.PI / 2]}>
+          <meshBasicMaterial color="#ffaa00" />
+        </Cone>
+      </group>
+    </group>
+  );
 };
 
 export const MissionVisualizer = ({ mission }: { mission: any }) => {
@@ -202,8 +232,25 @@ export const MissionVisualizer = ({ mission }: { mission: any }) => {
           const dirVector = new THREE.Vector3(dirX, dirY, dirZ).normalize();
           const arrowLength = 15;
 
+          const nextP = sceneData.points[i + 1];
+          let nextPointLocal = null;
+          if (nextP) {
+            // Subtract current point from next point to get the relative distance
+            nextPointLocal = new THREE.Vector3().subVectors(nextP, p);
+          }
+
+          const rotationDirection = wp.rotationDirection === 'CCW' ? 'CCW' : 'CW';
+
           return (
             <group key={i} position={p}>
+              {/* --- Render the Indicator halfway to the next point --- */}
+              {nextPointLocal && (
+                <TurnIndicator 
+                  nextPointLocal={nextPointLocal} 
+                  direction={rotationDirection} 
+                />
+              )}
+
               {/* Waypoint Dot */}
               <Sphere args={[0.5, 12, 12]}>
                 <meshStandardMaterial color={i === 0 ? "#00ff00" : i === sceneData.points.length - 1 ? "#ff0000" : "#ffffff"} />

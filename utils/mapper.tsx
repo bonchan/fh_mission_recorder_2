@@ -65,6 +65,7 @@ export function toWaypoint(djiItem: any): any | null {
         yaw: device_state[payload_index].gimbal_yaw,
         pitch: device_state[payload_index].gimbal_pitch,
         zoom: device_state.cameras[0].zoom_factor,
+        turn: 'CW',
         tag: 'None',
         actionGroup: null
     };

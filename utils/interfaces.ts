@@ -29,6 +29,7 @@ export interface Waypoint {
     yaw: number;
     pitch: number;
     zoom: number;
+    turn: string;
     tag: string;
     actionGroup: any | null;
 }

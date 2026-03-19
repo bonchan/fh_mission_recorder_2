@@ -1,11 +1,30 @@
 // utils/mission-transformer.ts
-import { getFocalLengthFromZoom, normalizeHeading360 } from '@/utils/utils'
+import { getFocalLengthFromZoom, normalizeHeading360, getShortestTurn } from '@/utils/utils'
 import { Waypoint } from './interfaces';
+
+export function recalculateWaypointTurns(waypoints: Waypoint[]): Waypoint[] {
+    if (!waypoints || waypoints.length === 0) return [];
+
+    // Create a new array so we don't mutate React state directly
+    const updated = [...waypoints];
+
+    for (let i = 0; i < updated.length - 1; i++) {
+        const currentWp = updated[i];
+        const nextWp = updated[i + 1];
+
+        // Update the current waypoint's turn based on where it needs to look next
+        currentWp.turn = getShortestTurn(currentWp.yaw, nextWp.yaw);
+    }
+
+    // The very last waypoint doesn't have a next point to turn toward.
+    // You can default it to CW, or keep whatever it currently has.
+    updated[updated.length - 1].turn = 'CW';
+
+    return updated;
+}
 
 export const transformWaypointsForExport = (waypoints: Waypoint[], payloadPositionIndex: number) => {
     return waypoints.map((wp, index) => {
-
-        console.log('waypoint: ', index, wp)
 
         // 1. Start with the base coordinate data
         const waypoint = {
@@ -28,7 +47,7 @@ export const transformWaypointsForExport = (waypoints: Waypoint[], payloadPositi
             actionActuatorFunc: "rotateYaw",
             actionActuatorFuncParam: {
                 aircraftHeading: normalizeHeading360(wp.yaw),
-                aircraftPathMode: "clockwise",
+                aircraftPathMode: wp.turn ? "clockwise" : "counterClockwise",
             }
         });
 
@@ -104,12 +123,6 @@ export const transformWaypointsForExport = (waypoints: Waypoint[], payloadPositi
                 actions: actions
             };
         }
-
-
-        console.log('complete waypoint: ', index, waypoint)
-
-        console.log('')
-        console.log('')
 
         return waypoint;
     });

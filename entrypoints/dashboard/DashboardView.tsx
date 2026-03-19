@@ -74,8 +74,6 @@ export function DashboardView() {
     };
 
     const handleExportMission = async (mission: Mission) => {
-        console.log('Exporting mission', mission)
-
         const blob = await generateDJIMission(mission);
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -88,11 +86,7 @@ export function DashboardView() {
     }
 
     const handleDebugMission = async (mission: Mission) => {
-        console.log('Debug mission', mission)
-
         const { template, waylines } = await generateDJIMissionFiles(mission)
-        console.log('template', template)
-        console.log('waylines', waylines)
         setDebugXml({ template, waylines });
     }
 

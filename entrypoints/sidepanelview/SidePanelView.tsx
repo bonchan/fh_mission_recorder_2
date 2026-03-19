@@ -83,7 +83,7 @@ export default function SidePanelView() {
       if (areaName === 'local' && projectId && orgId) {
         const expectedKey = getProjectMissionsStorageKey(orgId, projectId);
         if (changes[expectedKey]) {
-          console.log("Storage updated in another tab! Syncing...", changes[expectedKey]);
+          // console.log("Storage updated in another tab! Syncing...", changes[expectedKey]);
           setProjectMissionsMap(changes[expectedKey].newValue || {});
         }
       }
@@ -104,7 +104,7 @@ export default function SidePanelView() {
 
   // 2. Finalize Mission Creation
   const handleConfirmCreate = async () => {
-    console.log(newMissionName, selectedDeviceIndex)
+    // console.log(newMissionName, selectedDeviceIndex)
     if (!newMissionName) return;
 
     const selectedDock = devices[selectedDeviceIndex];
@@ -129,13 +129,11 @@ export default function SidePanelView() {
     await saveMissions(orgId, projectId, dockSn, updatedList);
     setProjectMissionsMap(prev => ({ ...prev, [dockSn]: updatedList }));
 
-    // await saveMissions([newMission, ...missions]);
-
     // Reset and Close
     setNewMissionName('');
     setShowModal(false);
 
-    console.log('newMission', newMission)
+    // console.log('newMission', newMission)
   };
 
   const handleUpdateMission = async (updatedMission: Mission) => {
