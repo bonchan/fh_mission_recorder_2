@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { Canvas } from '@react-three/fiber';
+import React, { useMemo, useState, useRef } from 'react';
+import { Canvas, useFrame } from '@react-three/fiber';
 import { OrbitControls, Line, Sphere, Plane, PerspectiveCamera } from '@react-three/drei';
 import * as THREE from 'three';
 
@@ -20,11 +20,26 @@ const PROVIDERS = {
   osm: (z: number, y: number, x: number) => `https://tile.openstreetmap.org/${z}/${x}/${y}.png`
 };
 
+const CompassSync = ({ compassRef }: { compassRef: React.RefObject<HTMLDivElement | null> }) => {
+  const tempEuler = new THREE.Euler();
+
+  useFrame(({ camera }) => {
+    if (compassRef.current) {
+      tempEuler.setFromQuaternion(camera.quaternion, 'YXZ');
+      const angle = -tempEuler.y;
+      compassRef.current.style.transform = `rotate(${angle}rad)`;
+    }
+  });
+  return null;
+};
+
 export const MissionVisualizer = ({ mission }: { mission: any }) => {
   const [provider, setProvider] = useState<keyof typeof PROVIDERS>('arcgis');
-  
+  const controlsRef = useRef<any>(null);
+  const compassDivRef = useRef<HTMLDivElement>(null);
+
   // Backing off the zoom slightly helps ensure we don't try to load 100 tiles for a long flight
-  const zoom = 17; 
+  const zoom = 17;
 
   const sceneData = useMemo(() => {
     if (!mission?.waypoints?.length) return null;
@@ -44,7 +59,7 @@ export const MissionVisualizer = ({ mission }: { mission: any }) => {
     const startTileX = Math.floor(lonToTile(minLon, zoom));
     const endTileX = Math.floor(lonToTile(maxLon, zoom));
     // Y tiles increase going South, so maxLat is the smaller Y index
-    const startTileY = Math.floor(latToTile(maxLat, zoom)); 
+    const startTileY = Math.floor(latToTile(maxLat, zoom));
     const endTileY = Math.floor(latToTile(minLat, zoom));
 
     // Limit the grid size so we don't crash the browser if points are very far apart
@@ -63,7 +78,7 @@ export const MissionVisualizer = ({ mission }: { mission: any }) => {
     // 3. Generate the Map Tiles
     for (let x = startTileX; x <= endTileX; x++) {
       for (let y = startTileY; y <= endTileY; y++) {
-        
+
         // Safety Break
         if (mapTiles.length >= maxTiles) break;
 
@@ -110,20 +125,47 @@ export const MissionVisualizer = ({ mission }: { mission: any }) => {
 
   if (!sceneData) return <div style={{ color: 'white', padding: '20px' }}>No Mission Loaded</div>;
 
+  const handleCompassClick = () => {
+    if (controlsRef.current) {
+      controlsRef.current.setPolarAngle(0);
+      controlsRef.current.setAzimuthalAngle(0);
+      controlsRef.current.update();
+    }
+  };
+
   return (
     <div style={{ position: 'relative', width: '100%', height: '600px', background: '#000', borderRadius: '12px', overflow: 'hidden' }}>
+
       <div style={{ position: 'absolute', top: 10, left: 10, zIndex: 10, display: 'flex', gap: '8px' }}>
-        <select
-          value={provider}
-          onChange={(e) => setProvider(e.target.value as any)}
-          style={{ padding: '6px 12px', borderRadius: '4px', background: '#222', color: '#fff', border: '1px solid #444', cursor: 'pointer' }}
-        >
+        <select value={provider} onChange={(e) => setProvider(e.target.value as any)} style={{ padding: '6px 12px', borderRadius: '4px', background: '#222', color: '#fff', border: '1px solid #444', cursor: 'pointer' }}>
           <option value="arcgis">Satellite (ArcGIS)</option>
           <option value="osm">Map (OpenStreetMap)</option>
         </select>
         <div style={{ background: 'rgba(0,0,0,0.6)', color: '#aaa', padding: '6px 10px', borderRadius: '4px', fontSize: '12px' }}>
-          WP: {mission.waypoints.length} | Tiles: {sceneData.mapTiles.length}
+          WP: {mission.waypoints.length}
         </div>
+      </div>
+
+      <div
+        ref={compassDivRef}
+        onClick={handleCompassClick}
+        title="Reset to North-Up / Zenithal"
+        style={{
+          position: 'absolute', top: 15, right: 15, zIndex: 10,
+          width: '50px', height: '50px', borderRadius: '50%',
+          backgroundColor: 'rgba(20, 20, 20, 0.8)', border: '2px solid #333',
+          cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center',
+          color: '#888', fontSize: '11px', fontWeight: 'bold', userSelect: 'none',
+          boxShadow: '0 4px 10px rgba(0,0,0,0.5)',
+        }}
+        onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#0066ff'; e.currentTarget.style.color = '#fff'; }}
+        onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#333'; e.currentTarget.style.color = '#888'; }}
+      >
+        <span style={{ position: 'absolute', top: 2, color: '#ff4444' }}>N</span>
+        <span style={{ position: 'absolute', bottom: 2 }}>S</span>
+        <span style={{ position: 'absolute', right: 4 }}>E</span>
+        <span style={{ position: 'absolute', left: 4 }}>W</span>
+        <div style={{ width: '6px', height: '6px', backgroundColor: '#555', borderRadius: '50%' }} />
       </div>
 
       <Canvas>
@@ -131,9 +173,11 @@ export const MissionVisualizer = ({ mission }: { mission: any }) => {
         <ambientLight intensity={1.5} />
         <pointLight position={[100, 200, 100]} />
 
+        <CompassSync compassRef={compassDivRef} />
+
         {/* MAP GRID */}
         {sceneData.mapTiles.map((tile) => (
-           <Plane
+          <Plane
             key={tile.id}
             args={tile.planeSize}
             rotation={[-Math.PI / 2, 0, 0]}
@@ -145,24 +189,55 @@ export const MissionVisualizer = ({ mission }: { mission: any }) => {
 
         <Line points={sceneData.points} color="#ffff00" lineWidth={2} />
 
-        {sceneData.points.map((p: any, i: any) => (
-          <group key={i} position={p}>
-            <Sphere args={[0.5, 12, 12]}>
-              <meshStandardMaterial color={i === 0 ? "#00ff00" : i === sceneData.points.length - 1 ? "#ff0000" : "#ffffff"} />
-            </Sphere>
-            <Line
-              points={[new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, -p.y, 0)]}
-              color="#ffffff"
-              transparent
-              opacity={0.2}
-              lineWidth={0.5}
-            />
-          </group>
-        ))}
+        {sceneData.points.map((p: any, i: number) => {
+          const wp = mission.waypoints[i];
+          const yawRad = (wp.yaw || 0) * (Math.PI / 180);
+          const pitchRad = (wp.pitch || 0) * (Math.PI / 180);
+
+          const dirY = Math.sin(pitchRad);
+          const h = Math.cos(pitchRad);
+          const dirX = h * Math.sin(yawRad);
+          const dirZ = -h * Math.cos(yawRad);
+
+          const dirVector = new THREE.Vector3(dirX, dirY, dirZ).normalize();
+          const arrowLength = 15;
+
+          return (
+            <group key={i} position={p}>
+              {/* Waypoint Dot */}
+              <Sphere args={[0.5, 12, 12]}>
+                <meshStandardMaterial color={i === 0 ? "#00ff00" : i === sceneData.points.length - 1 ? "#ff0000" : "#ffffff"} />
+              </Sphere>
+
+              {/* Vertical Height Line */}
+              <Line
+                points={[new THREE.Vector3(0, 0, 0), new THREE.Vector3(0, -p.y, 0)]}
+                color="#ffffff"
+                transparent
+                opacity={0.2}
+                lineWidth={0.5}
+              />
+
+              {/* CAMERA VIEW ARROW (Magenta) */}
+              <arrowHelper
+                args={[
+                  dirVector,                  // Direction
+                  new THREE.Vector3(0, 0, 0), // Origin (relative to the group)
+                  arrowLength,                // Length
+                  0xff00ff,                   // Color (Hex number, not string)
+                  3,                          // Head length
+                  2                           // Head width
+                ]}
+              />
+            </group>
+          );
+        })}
 
         <OrbitControls
+          ref={controlsRef}
           target={sceneData.center}
           enableDamping
+          maxPolarAngle={Math.PI / 2}
           mouseButtons={{
             LEFT: THREE.MOUSE.PAN,
             MIDDLE: THREE.MOUSE.ROTATE,
