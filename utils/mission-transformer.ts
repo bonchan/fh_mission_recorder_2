@@ -30,7 +30,7 @@ export const transformWaypointsForExport = (waypoints: Waypoint[], payloadPositi
         const waypoint = {
             ...wp,
             index: index,
-            waypointSpeed: 5, // Default speed
+            waypointSpeed: 15, // Default speed
             isRisky: false,
             ellipsoidHeight: wp.elevation,// FIXME wp.height,
             height: wp.elevation,
@@ -105,6 +105,15 @@ export const transformWaypointsForExport = (waypoints: Waypoint[], payloadPositi
                 gimbalPort: 0,
                 // orientedCameraType: 53,                         // 52: M30 Dual, 53: M30T Triple
                 orientedPhotoMode: "normalPhoto"                // "normalPhoto" or "lowLightSmartShooting"
+            }
+        });
+
+        actions.push({
+            actionId: actionId++,
+            actionActuatorFunc: "zoom",
+            actionActuatorFuncParam: {
+                payloadPositionIndex: payloadPositionIndex,
+                focalLength: getFocalLengthFromZoom(1),
             }
         });
 

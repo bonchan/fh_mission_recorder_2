@@ -66,8 +66,13 @@ const TurnIndicator = ({ nextPointLocal, direction }: { nextPointLocal: THREE.Ve
 
 export const MissionVisualizer = ({ mission, annotations }: { mission: any, annotations: Annotation[] }) => {
   const [provider, setProvider] = useState<keyof typeof PROVIDERS>('arcgis');
+
+  const [showAnnotations, setShowAnnotations] = useState(true);
+  const [annotationRadius, setAnnotationRadius] = useState(1000);
+
   const controlsRef = useRef<any>(null);
   const compassDivRef = useRef<HTMLDivElement>(null);
+
 
   // Backing off the zoom slightly helps ensure we don't try to load 100 tiles for a long flight
   const zoom = 17;
@@ -162,7 +167,7 @@ export const MissionVisualizer = ({ mission, annotations }: { mission: any, anno
       return new THREE.Vector3(pX, pY, pZ);
     });
 
-    const closestsAnnotations = filterAnnotationsByRadius(annotations, first.latitude, first.longitude, 100)
+    const closestsAnnotations = filterAnnotationsByRadius(annotations, first.latitude, first.longitude, annotationRadius)
     const localAnnotations = closestsAnnotations.map((ann: any) => {
       const pX = (ann.longitude - first.longitude) * metersPerLon;
       const pY = 1;
@@ -204,11 +209,51 @@ export const MissionVisualizer = ({ mission, annotations }: { mission: any, anno
   return (
     <div style={{ position: 'relative', width: '100%', height: '600px', background: '#000', borderRadius: '12px', overflow: 'hidden' }}>
 
-      <div style={{ position: 'absolute', top: 10, left: 10, zIndex: 10, display: 'flex', gap: '8px' }}>
-        <select value={provider} onChange={(e) => setProvider(e.target.value as any)} style={{ padding: '6px 12px', borderRadius: '4px', background: '#222', color: '#fff', border: '1px solid #444', cursor: 'pointer' }}>
-          <option value="arcgis">Satellite (ArcGIS)</option>
-          <option value="osm">Map (OpenStreetMap)</option>
+      {/* 4. Top Left Controls Panel */}
+      <div style={{
+        position: 'absolute', top: 10, left: 10, zIndex: 10,
+        display: 'flex', alignItems: 'center', gap: '15px',
+        background: 'rgba(20, 20, 20, 0.8)', padding: '8px 12px',
+        borderRadius: '6px', border: '1px solid #444'
+      }}>
+        {/* Map Provider */}
+        <select
+          value={provider}
+          onChange={(e) => setProvider(e.target.value as any)}
+          style={{ padding: '6px 12px', borderRadius: '4px', background: '#333', color: '#fff', border: 'none', cursor: 'pointer' }}
+        >
+          <option value="arcgis">Satellite</option>
+          <option value="osm">Map</option>
         </select>
+
+        <div style={{ width: '1px', height: '24px', background: '#555' }} /> {/* Divider */}
+
+        {/* Toggle Annotations */}
+        <label style={{ color: '#fff', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', userSelect: 'none' }}>
+          <input
+            type="checkbox"
+            checked={showAnnotations}
+            onChange={(e) => setShowAnnotations(e.target.checked)}
+            style={{ cursor: 'pointer' }}
+          />
+          Annotations
+        </label>
+
+        {/* Radius Slider (Only visible if annotations are checked) */}
+        {showAnnotations && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <input
+              type="range"
+              min="50"
+              max="1500"
+              step="50"
+              value={annotationRadius}
+              onChange={(e) => setAnnotationRadius(Number(e.target.value))}
+              style={{ width: '100px', cursor: 'pointer' }}
+            />
+            <span style={{ color: '#aaa', fontSize: '12px', width: '40px' }}>{annotationRadius}m</span>
+          </div>
+        )}
       </div>
 
       <div
@@ -322,7 +367,7 @@ export const MissionVisualizer = ({ mission, annotations }: { mission: any, anno
           );
         })}
 
-        {sceneData.localAnnotations.map((ann: any, i: number) => {
+        {showAnnotations && sceneData.localAnnotations.map((ann: any, i: number) => {
           return (
             <group key={i} position={ann.localPoint}>
               <Sphere args={[1.5, 12, 12]}>

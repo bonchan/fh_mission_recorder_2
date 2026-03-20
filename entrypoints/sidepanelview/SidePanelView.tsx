@@ -48,9 +48,9 @@ export default function SidePanelView() {
   useEffect(() => {
     const init = async () => {
       try {
-        const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
-        if (!tab?.id) return;
-        const annotationsResponse = await browser.tabs.sendMessage(tab.id, { action: "GET_ANNOTATIONS" });
+        // const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+        // if (!tab?.id) return;
+        const annotationsResponse = await browser.tabs.sendMessage(tabId, { action: "GET_ANNOTATIONS" });
         const annotationList: Annotation[] = [];
         for (const elementList of annotationsResponse.annotations.data) {
           for (const element of elementList.elements) {
@@ -67,7 +67,7 @@ export default function SidePanelView() {
     };
     init();
 
-  }, [projectId, orgId]);
+  }, [projectId, orgId, tabId]);
 
   useEffect(() => {
 
@@ -75,9 +75,9 @@ export default function SidePanelView() {
 
       setIsFetching(true);
       try {
-        const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
-        if (!tab?.id) return;
-        const topologiesResponse = await browser.tabs.sendMessage(tab.id, { action: "GET_TOPOLOGIES" });
+        // const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+        // if (!tab?.id) return;
+        const topologiesResponse = await browser.tabs.sendMessage(tabId, { action: "GET_TOPOLOGIES" });
         const topologies = topologiesResponse.topologies.data.list
         const data = await loadMissions(orgId, projectId);
         setProjectMissionsMap(data);
@@ -103,7 +103,7 @@ export default function SidePanelView() {
 
       } catch (err) {
         console.error("Failed to load docks", err);
-        alert("Please ensure the DJI tab is active and refreshed.");
+        // alert("Please ensure the DJI tab is active and refreshed.");
       } finally {
         setIsFetching(false);
       }
@@ -127,7 +127,7 @@ export default function SidePanelView() {
       browser.storage.onChanged.removeListener(handleStorageChange);
     };
 
-  }, [projectId, orgId]);
+  }, [projectId, orgId, tabId]);
 
   // 1. Open Modal and Fetch Docks via Content Script
   const openCreateModal = async () => {

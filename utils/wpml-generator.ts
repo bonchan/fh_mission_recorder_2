@@ -133,7 +133,7 @@ export async function generateDJIMissionFiles(mission: Mission) {
       <wpml:index>${index}</wpml:index>
       <wpml:ellipsoidHeight>${wp.ellipsoidHeight}</wpml:ellipsoidHeight>
       <wpml:height>${wp.height}</wpml:height>
-      <wpml:useGlobalHeight>1</wpml:useGlobalHeight>
+      <wpml:useGlobalHeight>0</wpml:useGlobalHeight>
       <wpml:useGlobalSpeed>${wp.waypointSpeed}</wpml:useGlobalSpeed>
       <wpml:useGlobalHeadingParam>1</wpml:useGlobalHeadingParam>
       <wpml:useGlobalTurnParam>1</wpml:useGlobalTurnParam>

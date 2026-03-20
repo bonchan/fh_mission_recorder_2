@@ -61,7 +61,7 @@ export interface Annotation {
     color: string;
 }
 
-export type TagCategory = 'flight_route' | 'location' | 'asset' | 'intention';
+export type TagCategory = '' | 'flight_route' | 'location' | 'asset' | 'intention';
 
 export interface TagOption {
     id: string;
@@ -70,6 +70,7 @@ export interface TagOption {
 }
 
 export const TAG_OPTIONS: TagOption[] = [
+    { id: 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee', name: '', category: '' },
     { id: 'ccdefa98-fbd4-4db6-952d-6622f848f111', name: 'cenital', category: 'flight_route' },
     { id: 'fa698daa-463d-428f-beb2-9dd2700e177b', name: 'detalle', category: 'flight_route' },
     { id: '3a803446-e8f5-4d98-9cd2-9d2de5ba0fec', name: 'boca_pozo', category: 'flight_route' },
