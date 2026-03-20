@@ -102,9 +102,10 @@ export const MissionVisualizer = ({ mission, annotations }: { mission: any, anno
     const endTileY = Math.floor(latToTile(minLat, zoom)) + padding;
 
     // Limit the grid size so we don't crash the browser
-    const maxTiles = 49; // Increased to 7x7 grid max to accommodate the extra ring
-    if ((endTileX - startTileX + 1) * (endTileY - startTileY + 1) > maxTiles) {
-      console.warn("Mission is too large to render full map grid at this zoom level.");
+    const maxTiles = 64; // Increased to 7x7 grid max to accommodate the extra ring
+    const neededTiles = (endTileX - startTileX + 1) * (endTileY - startTileY + 1)
+    if (neededTiles > maxTiles) {
+      console.warn("Mission is too large to render full map grid at this zoom level.", neededTiles);
     }
 
     const first = mission.waypoints[0];
@@ -154,6 +155,7 @@ export const MissionVisualizer = ({ mission, annotations }: { mission: any, anno
     let minX = Infinity, maxX = -Infinity;
     let minZ = Infinity, maxZ = -Infinity;
 
+    let lastLocalPoint = new THREE.Vector3(0, 0, 0)
     const localPoints = mission.waypoints.map((wp: any) => {
       const pX = (wp.longitude - first.longitude) * metersPerLon;
       const pY = wp.elevation || 0;
@@ -163,8 +165,9 @@ export const MissionVisualizer = ({ mission, annotations }: { mission: any, anno
       if (pX > maxX) maxX = pX;
       if (pZ < minZ) minZ = pZ;
       if (pZ > maxZ) maxZ = pZ;
-
-      return new THREE.Vector3(pX, pY, pZ);
+      const p = new THREE.Vector3(pX, pY, pZ)
+      lastLocalPoint = p
+      return p;
     });
 
     const closestsAnnotations = filterAnnotationsByRadius(annotations, first.latitude, first.longitude, annotationRadius)
@@ -189,7 +192,7 @@ export const MissionVisualizer = ({ mission, annotations }: { mission: any, anno
 
     return {
       points: localPoints,
-      center: localPoints[Math.floor(localPoints.length / 2)],
+      center: lastLocalPoint,
       mapTiles,
       cameraHeight,
       localAnnotations
@@ -282,6 +285,8 @@ export const MissionVisualizer = ({ mission, annotations }: { mission: any, anno
         <PerspectiveCamera
           makeDefault
           fov={50}
+          near={1}
+          far={20000}
           position={[
             sceneData.center.x,
             sceneData.cameraHeight,
@@ -402,6 +407,8 @@ export const MissionVisualizer = ({ mission, annotations }: { mission: any, anno
           target={sceneData.center}
           enableDamping
           maxPolarAngle={Math.PI / 2}
+          minDistance={10}
+          maxDistance={15000}
           mouseButtons={{
             LEFT: THREE.MOUSE.PAN,
             MIDDLE: THREE.MOUSE.ROTATE,
