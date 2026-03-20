@@ -140,16 +140,36 @@ export const MissionVisualizer = ({ mission }: { mission: any }) => {
     }
 
     // 4. Project Local Points
-    const localPoints = mission.waypoints.map((wp: any) => new THREE.Vector3(
-      (wp.longitude - first.longitude) * metersPerLon,
-      wp.elevation || 0,
-      (first.latitude - wp.latitude) * metersPerLat
-    ));
+    let minX = Infinity, maxX = -Infinity;
+    let minZ = Infinity, maxZ = -Infinity;
+
+    const localPoints = mission.waypoints.map((wp: any) => {
+      const pX = (wp.longitude - first.longitude) * metersPerLon;
+      const pY = wp.elevation || 0;
+      const pZ = (first.latitude - wp.latitude) * metersPerLat;
+
+      if (pX < minX) minX = pX;
+      if (pX > maxX) maxX = pX;
+      if (pZ < minZ) minZ = pZ;
+      if (pZ > maxZ) maxZ = pZ;
+
+      return new THREE.Vector3(pX, pY, pZ);
+    });
+
+    // 5. Calculate Camera Height to fit all points
+    const sizeX = maxX - minX;
+    const sizeZ = maxZ - minZ;
+    const maxDimension = Math.max(sizeX, sizeZ, 100); // 100m fallback if only 1 point exists
+
+    const fov = 50; // Standard PerspectiveCamera FOV
+    // Math: Height = (Width / 2) / tan(FOV / 2). Added * 1.5 for a nice padding margin.
+    const cameraHeight = ((maxDimension / 2) / Math.tan((fov * Math.PI) / 360)) * 1.5;
 
     return {
       points: localPoints,
       center: localPoints[Math.floor(localPoints.length / 2)],
-      mapTiles
+      mapTiles,
+      cameraHeight
     };
   }, [mission, provider]);
 
@@ -199,7 +219,16 @@ export const MissionVisualizer = ({ mission }: { mission: any }) => {
       </div>
 
       <Canvas>
-        <PerspectiveCamera makeDefault position={[50, 50, 50]} />
+        <PerspectiveCamera 
+          makeDefault 
+          fov={50}
+          position={[
+            sceneData.center.x, 
+            sceneData.cameraHeight, 
+            sceneData.center.z + 0.01 
+          ]} 
+        />
+
         <ambientLight intensity={1.5} />
         <pointLight position={[100, 200, 100]} />
 
@@ -239,15 +268,13 @@ export const MissionVisualizer = ({ mission }: { mission: any }) => {
             nextPointLocal = new THREE.Vector3().subVectors(nextP, p);
           }
 
-          const rotationDirection = wp.rotationDirection === 'CCW' ? 'CCW' : 'CW';
-
           return (
             <group key={i} position={p}>
               {/* --- Render the Indicator halfway to the next point --- */}
               {nextPointLocal && (
-                <TurnIndicator 
-                  nextPointLocal={nextPointLocal} 
-                  direction={rotationDirection} 
+                <TurnIndicator
+                  nextPointLocal={nextPointLocal}
+                  direction={wp.turn}
                 />
               )}
 
