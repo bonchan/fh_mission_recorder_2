@@ -53,6 +53,14 @@ export interface Drone {
     parent: Dock | null;
 }
 
+export interface Annotation {
+    id: string;
+    name: string;
+    longitude: number;
+    latitude: number;
+    color: string;
+}
+
 export type TagCategory = 'flight_route' | 'location' | 'asset' | 'intention';
 
 export interface TagOption {

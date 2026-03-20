@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
 import { useExtensionState } from '@/components/ExtensionStateProvider';
 import { MissionItem } from '@/components/MissionItem';
-import { ViewContext, MissionMap, Mission, Waypoint, Dock } from '@/utils/interfaces';
+import { ViewContext, MissionMap, Mission, Waypoint, Dock, Annotation } from '@/utils/interfaces';
 import { delay } from '@/utils/time';
-import { toDock, toWaypoint } from '@/utils/mapper'
+import { toAnnotation, toDock, toWaypoint, } from '@/utils/mapper'
 import { getProjectMissionsStorageKey } from '@/utils/utils';
 
 export default function SidePanelView() {
-  const { loadMissions, saveMissions } = useExtensionState();
-  const [projectMissionsMap, setProjectMissionsMap] = useState<MissionMap>({});
+  const { loadMissions, saveMissions, saveAnnotations } = useExtensionState();
+  const [tabId, setTabId] = useState(Number);
 
+  const [projectMissionsMap, setProjectMissionsMap] = useState<MissionMap>({});
   const [isFetching, setIsFetching] = useState(false);
 
   // --- Modal State ---
@@ -22,6 +23,51 @@ export default function SidePanelView() {
 
   const [currentUser, setCurrentUser] = useState('');
 
+  useEffect(() => {
+    const init = async () => {
+      const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+      if (!tab?.id) return;
+
+      if (!currentUser) {
+        const currentUserResponse = await browser.tabs.sendMessage(tab.id, { action: "GET_CURRENT_USER" });
+        console.log('currentUserResponse', currentUserResponse)
+
+        setCurrentUser(currentUserResponse.currentUser.data.nickname)
+
+        const pId = currentUserResponse.projectId;
+        const oId = currentUserResponse.orgId;
+        setProjectId(pId);
+        setOrgId(oId);
+
+        setTabId(tab.id)
+      }
+    }
+    init();
+  }, []);
+
+  useEffect(() => {
+    const init = async () => {
+      try {
+        const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
+        if (!tab?.id) return;
+        const annotationsResponse = await browser.tabs.sendMessage(tab.id, { action: "GET_ANNOTATIONS" });
+        const annotationList: Annotation[] = [];
+        for (const elementList of annotationsResponse.annotations.data) {
+          for (const element of elementList.elements) {
+            const annotation = toAnnotation(element);
+            if (annotation) {
+              annotationList.push(annotation);
+            }
+          }
+        }
+        saveAnnotations(orgId, projectId, annotationList)
+      } catch (err) {
+        console.error("Failed to load annotations", err);
+      }
+    };
+    init();
+
+  }, [projectId, orgId]);
 
   useEffect(() => {
 
@@ -31,26 +77,12 @@ export default function SidePanelView() {
       try {
         const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
         if (!tab?.id) return;
-
-        if (!currentUser) {
-          const currentUserResponse = await browser.tabs.sendMessage(tab.id, { action: "GET_CURRENT_USER" });
-          setCurrentUser(currentUserResponse.currentUser.data.nickname)
-        }
-
         const topologiesResponse = await browser.tabs.sendMessage(tab.id, { action: "GET_TOPOLOGIES" });
-
-        const pId = topologiesResponse.projectId;
-        const oId = topologiesResponse.orgId;
         const topologies = topologiesResponse.topologies.data.list
-
-        setProjectId(pId);
-        setOrgId(oId);
-
-        const data = await loadMissions(oId, pId);
+        const data = await loadMissions(orgId, projectId);
         setProjectMissionsMap(data);
 
         const deviceList: Drone[] = [];
-
         for (const item of topologies) {
           const drone = toDockDrone(item);
           // Only add to the list if the mapper returned a valid object

@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useRef } from 'react';
+import { filterAnnotationsByRadius, filterAnnotationsByName } from '@/utils/utils'
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Line, Sphere, Plane, PerspectiveCamera, Ring, Cone } from '@react-three/drei';
+import { OrbitControls, Line, Sphere, Plane, PerspectiveCamera, Ring, Cone, Html } from '@react-three/drei';
 import * as THREE from 'three';
 
 // --- TILE MATH HELPERS ---
@@ -63,7 +64,7 @@ const TurnIndicator = ({ nextPointLocal, direction }: { nextPointLocal: THREE.Ve
   );
 };
 
-export const MissionVisualizer = ({ mission }: { mission: any }) => {
+export const MissionVisualizer = ({ mission, annotations }: { mission: any, annotations: Annotation[] }) => {
   const [provider, setProvider] = useState<keyof typeof PROVIDERS>('arcgis');
   const controlsRef = useRef<any>(null);
   const compassDivRef = useRef<HTMLDivElement>(null);
@@ -107,6 +108,8 @@ export const MissionVisualizer = ({ mission }: { mission: any }) => {
 
     const loader = new THREE.TextureLoader();
     const mapTiles = [];
+
+
 
     // 3. Generate the Map Tiles
     for (let x = startTileX; x <= endTileX; x++) {
@@ -159,6 +162,17 @@ export const MissionVisualizer = ({ mission }: { mission: any }) => {
       return new THREE.Vector3(pX, pY, pZ);
     });
 
+    const closestsAnnotations = filterAnnotationsByRadius(annotations, first.latitude, first.longitude, 100)
+    const localAnnotations = closestsAnnotations.map((ann: any) => {
+      const pX = (ann.longitude - first.longitude) * metersPerLon;
+      const pY = 1;
+      const pZ = (first.latitude - ann.latitude) * metersPerLat;
+      return {
+        ...ann,
+        localPoint: new THREE.Vector3(pX, pY, pZ)
+      };
+    })
+
     // 5. Calculate Camera Height to fit all points
     const sizeX = maxX - minX;
     const sizeZ = maxZ - minZ;
@@ -172,7 +186,8 @@ export const MissionVisualizer = ({ mission }: { mission: any }) => {
       points: localPoints,
       center: localPoints[Math.floor(localPoints.length / 2)],
       mapTiles,
-      cameraHeight
+      cameraHeight,
+      localAnnotations
     };
   }, [mission, provider]);
 
@@ -194,9 +209,6 @@ export const MissionVisualizer = ({ mission }: { mission: any }) => {
           <option value="arcgis">Satellite (ArcGIS)</option>
           <option value="osm">Map (OpenStreetMap)</option>
         </select>
-        <div style={{ background: 'rgba(0,0,0,0.6)', color: '#aaa', padding: '6px 10px', borderRadius: '4px', fontSize: '12px' }}>
-          WP: {mission.waypoints.length}
-        </div>
       </div>
 
       <div
@@ -308,6 +320,36 @@ export const MissionVisualizer = ({ mission }: { mission: any }) => {
               />
             </group>
           );
+        })}
+
+        {sceneData.localAnnotations.map((ann: any, i: number) => {
+          return (
+            <group key={i} position={ann.localPoint}>
+              <Sphere args={[1.5, 12, 12]}>
+                <meshStandardMaterial color={ann.color} />
+              </Sphere>
+              <Html
+                position={[0, 0, 5]} // Offset it 2.5 meters UP so it sits above the sphere
+                center                 // Centers the HTML div perfectly over the anchor point
+                zIndexRange={[100, 0]} // Ensures labels don't clip weirdly through 3D objects
+              >
+                <div style={{
+                  background: 'rgba(0, 0, 0, 0.7)',
+                  color: 'white',
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                  whiteSpace: 'nowrap', // Prevents the text from wrapping
+                  border: `1px solid ${ann.color}`, // Match the border to the sphere color!
+                  userSelect: 'none',   // Prevents accidental text selection while panning
+                  pointerEvents: 'none' // Lets clicks pass through to the 3D map below
+                }}>
+                  {ann.name}
+                </div>
+              </Html>
+            </group>
+          )
         })}
 
         <OrbitControls

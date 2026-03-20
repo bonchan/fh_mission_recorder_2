@@ -9,7 +9,7 @@ import { generateDJIMission, generateDJIMissionFiles } from '@/utils/wpml-genera
 import { XMLDebugModal } from '@/components/XMLDebugModal';
 
 export function DashboardView() {
-    const { loadMissions, saveMissions } = useExtensionState();
+    const { loadMissions, saveMissions, loadAnnotations } = useExtensionState();
     const [debugXml, setDebugXml] = useState<{ template: string, waylines: string } | null>(null);
 
     // 1. Get IDs from URL
@@ -21,12 +21,17 @@ export function DashboardView() {
     const [selectedMissionId, setSelectedMissionId] = useState(initialMissionId);
     const [projectMissionsMap, setProjectMissionsMap] = useState<MissionMap>({});
 
+    const [annotations, setAnnotations] = useState<Annotation[]>([]);
+
     // 2. Fetch Initial Data using Provider logic
     useEffect(() => {
         const fetchInitialData = async () => {
             if (!orgId || !projectId) return;
-            const data = await loadMissions(orgId, projectId);
-            setProjectMissionsMap(data);
+            const missions = await loadMissions(orgId, projectId);
+            setProjectMissionsMap(missions);
+
+            const annotations = await loadAnnotations(orgId, projectId);
+            setAnnotations(annotations);
         };
         fetchInitialData();
     }, [orgId, projectId]);
@@ -181,7 +186,7 @@ export function DashboardView() {
                     background: 'radial-gradient(circle at center, #111 0%, #0a0a0a 100%)'
                 }}>
                     {activeMission && (
-                        <MissionVisualizer mission={activeMission} />
+                        <MissionVisualizer mission={activeMission} annotations={annotations} />
                     )}
                 </div>
             </div>

@@ -1,4 +1,4 @@
-import { Drone, Dock } from '@/utils/interfaces';
+import { Drone, Dock, Annotation } from '@/utils/interfaces';
 import { extractNumber } from '@/utils/utils'
 
 export function toDock(djiItem: any): any | null {
@@ -92,4 +92,21 @@ export function toWaypoint(djiItem: any): any | null {
 
     return waypoint
 
+}
+
+export function toAnnotation(djiItem: any): any | null {
+    const geometry = djiItem.resource.content.geometry
+    const properties = djiItem.resource.content.properties
+    if (geometry.type == 'Point') {
+        const [lon, lat, _] = geometry.coordinates;
+        const annotation: Annotation = {
+            id: djiItem.id,
+            name: djiItem.name,
+            longitude: lon,
+            latitude: lat,
+            color: properties.color,
+        }
+        return annotation
+    }
+    return null
 }

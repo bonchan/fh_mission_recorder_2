@@ -1,12 +1,14 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { MissionMap, Mission } from '@/utils/interfaces';
-import { getProjectMissionsStorageKey } from '@/utils/utils';
+import { getProjectMissionsStorageKey, getProjectAnnotationsStorageKey } from '@/utils/utils';
 
 
 
 interface StateContextType {
     loadMissions: (orgId: string, projectId: string) => Promise<MissionMap>;
     saveMissions: (orgId: string, projectId: string, dockSn: string, missions: Mission[]) => Promise<void>;
+    loadAnnotations: (orgId: string, projectId: string) => Promise<Annotation[]>;
+    saveAnnotations: (orgId: string, projectId: string, annotations: Annotation[]) => Promise<void>;
 }
 
 const StateContext = createContext<StateContextType | null>(null);
@@ -14,16 +16,18 @@ const StateContext = createContext<StateContextType | null>(null);
 
 export function ExtensionStateProvider({ children }: { children: React.ReactNode }) {
 
-    const getStorageKey = (orgId: string, projectId: string) => `local:${getProjectMissionsStorageKey(orgId, projectId)}`;
+    const getProjectMissionsLocalStorageKey = (orgId: string, projectId: string) => `local:${getProjectMissionsStorageKey(orgId, projectId)}`;
+    const getProjectAnnotationsLocalStorageKey = (orgId: string, projectId: string) => `local:${getProjectAnnotationsStorageKey(orgId, projectId)}`;
 
+    // --- MISSIONS ---
     const loadMissions = async (orgId: string, projectId: string): Promise<MissionMap> => {
-        const key = getStorageKey(orgId, projectId);
+        const key = getProjectMissionsLocalStorageKey(orgId, projectId);
         const data = await storage.getItem<MissionMap>(key as any);
         return data || {};
     };
 
     const saveMissions = async (orgId: string, projectId: string, dockSn: string, updatedMissions: Mission[]) => {
-        const key = getStorageKey(orgId, projectId);
+        const key = getProjectMissionsLocalStorageKey(orgId, projectId);
         // 1. Get existing map for this project
         const currentMap = await loadMissions(orgId, projectId);
         // 2. Update only the specific dock
@@ -32,10 +36,26 @@ export function ExtensionStateProvider({ children }: { children: React.ReactNode
         await storage.setItem(key as any, newMap);
     };
 
+    // --- ANNOTATIONS ---
+    const loadAnnotations = async (orgId: string, projectId: string): Promise<Annotation[]> => {
+        const key = getProjectAnnotationsLocalStorageKey(orgId, projectId);
+        // Load the array, default to empty array if nothing exists yet
+        const data = await storage.getItem<Annotation[]>(key as any);
+        return data || [];
+    };
+
+    const saveAnnotations = async (orgId: string, projectId: string, annotations: Annotation[]) => {
+        const key = getProjectAnnotationsLocalStorageKey(orgId, projectId);
+        // Completely replace the existing list with the new array
+        await storage.setItem(key as any, annotations);
+    };
+
     return (
         <StateContext.Provider value={{
             loadMissions,
-            saveMissions
+            saveMissions,
+            loadAnnotations,
+            saveAnnotations
         }}>
             {children}
         </StateContext.Provider>

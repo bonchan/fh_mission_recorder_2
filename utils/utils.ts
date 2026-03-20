@@ -2,6 +2,10 @@ export const getProjectMissionsStorageKey = (orgId: string, projectId: string) =
   return `${orgId}__${projectId}__missions`;
 };
 
+export const getProjectAnnotationsStorageKey = (orgId: string, projectId: string) => {
+  return `${orgId}__${projectId}__annotations`;
+};
+
 export const extractNumber = (input: string): number => {
   const match = input.match(/#(\d+)\s/);
 
@@ -79,3 +83,45 @@ export function getShortestTurn(prevYaw: number, nextYaw: number): 'CW' | 'CCW' 
   // 3. If the normalized difference is positive, it's Clockwise
   return normalizedDiff >= 0 ? 'CW' : 'CCW';
 }
+
+// Calculates distance in meters between two coordinates
+function getDistanceInMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371e3; // Earth's radius in meters
+  const rad = Math.PI / 180;
+  const phi1 = lat1 * rad;
+  const phi2 = lat2 * rad;
+  const deltaPhi = (lat2 - lat1) * rad;
+  const deltaLambda = (lon2 - lon1) * rad;
+
+  const a = Math.sin(deltaPhi / 2) * Math.sin(deltaPhi / 2) +
+    Math.cos(phi1) * Math.cos(phi2) *
+    Math.sin(deltaLambda / 2) * Math.sin(deltaLambda / 2);
+
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+export const filterAnnotationsByRadius = (
+  annotations: Annotation[],
+  centerLat: number,
+  centerLon: number,
+  radiusMeters: number
+): Annotation[] => {
+  return annotations.filter(ann => {
+    const distance = getDistanceInMeters(centerLat, centerLon, ann.latitude, ann.longitude);
+    return distance <= radiusMeters;
+  });
+};
+
+export const filterAnnotationsByName = (
+  annotations: Annotation[],
+  searchQuery: string
+): Annotation[] => {
+  if (!searchQuery) return annotations;
+
+  const query = searchQuery.toLowerCase().trim();
+
+  return annotations.filter(ann =>
+    ann.name.toLowerCase().includes(query)
+  );
+};
