@@ -2,6 +2,7 @@ import JSZip from 'jszip';
 import { transformWaypointsForExport } from '@/utils/mission-transformer'
 import { Mission, Waypoint } from '@/utils/interfaces';
 import { formatXML } from '@/utils/utils';
+import pkg from '@/package.json';
 
 export async function generateDJIMission(mission: Mission) {
   const { template, waylines } = await generateDJIMissionFiles(mission)
@@ -243,6 +244,7 @@ export async function generateDJIMissionFiles(mission: Mission) {
   const templateKml = `${headerXml}
 <Document>
   <wpml:author>${mission.author}</wpml:author>
+  <wpml:panelVersion>${pkg.version}</wpml:panelVersion>
   <wpml:createTime>${mission.lastUpdated}</wpml:createTime>
   <wpml:updateTime>${mission.lastUpdated}</wpml:updateTime>
   ${missionConfigXml}

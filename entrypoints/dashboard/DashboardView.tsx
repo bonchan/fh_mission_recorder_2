@@ -85,7 +85,7 @@ export function DashboardView() {
         a.href = url;
 
         const cleanName = mission.name.replace(/[<>:"/|?*._\\]/g, '');
-        a.download = `panel--${cleanName}.kmz`;
+        a.download = `P2--${cleanName}.kmz`;
         a.click();
         window.URL.revokeObjectURL(url);
     }
