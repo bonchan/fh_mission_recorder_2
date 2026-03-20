@@ -97,6 +97,7 @@ export async function generateDJIMissionFiles(mission: Mission) {
         <!--<wpml:orientedCameraType>${action.actionActuatorFuncParam.orientedCameraType}</wpml:orientedCameraType> -->
         <wpml:orientedPhotoMode>${action.actionActuatorFuncParam.orientedPhotoMode}</wpml:orientedPhotoMode>`
 
+
       : action.actionActuatorFunc === "gimbalRotate"
         ? `
         <wpml:gimbalRotateMode>${action.actionActuatorFuncParam.gimbalRotateMode}</wpml:gimbalRotateMode>
@@ -123,52 +124,6 @@ export async function generateDJIMissionFiles(mission: Mission) {
       </wpml:actionActuatorFuncParam>
     </wpml:action>
     `
-
-
-  const renderPlacemarkx = (wp: any, index: number) => `
-  <Placemark>
-    <Point>
-      <coordinates>${wp.longitude},${wp.latitude}</coordinates>
-    </Point>
-    <wpml:index>${index}</wpml:index>
-    <wpml:ellipsoidHeight>${wp.ellipsoidHeight}</wpml:ellipsoidHeight>
-    <wpml:height>${wp.height}</wpml:height>
-    <wpml:waypointSpeed>${wp.waypointSpeed}</wpml:waypointSpeed>
-    <wpml:waypointHeadingParam>
-          <wpml:waypointHeadingMode>followWayline</wpml:waypointHeadingMode>
-          <wpml:waypointHeadingAngle>0</wpml:waypointHeadingAngle>
-          <wpml:waypointPoiPoint>0.000000,0.000000,0.000000</wpml:waypointPoiPoint>
-          <wpml:waypointHeadingPathMode>followBadArc</wpml:waypointHeadingPathMode>
-          <wpml:waypointHeadingPoiIndex>0</wpml:waypointHeadingPoiIndex>
-        </wpml:waypointHeadingParam>
-    <wpml:waypointTurnParam>
-      <wpml:waypointTurnMode>toPointAndStopWithDiscontinuityCurvature</wpml:waypointTurnMode>
-      <wpml:waypointTurnDampingDist>0.2</wpml:waypointTurnDampingDist>
-    </wpml:waypointTurnParam>
-    <wpml:useGlobalHeight>1</wpml:useGlobalHeight>
-    <wpml:useGlobalSpeed>1</wpml:useGlobalSpeed>
-    <wpml:useGlobalHeadingParam>1</wpml:useGlobalHeadingParam>
-    <wpml:useGlobalTurnParam>1</wpml:useGlobalTurnParam>
-    <wpml:useStraightLine>${wp.useStraightLine ? 1 : 0}</wpml:useStraightLine>
-    
-    ${wp.actionGroup ?
-      `<wpml:actionGroup>
-        <wpml:actionGroupId>${wp.actionGroup.actionGroupId}</wpml:actionGroupId>
-        <wpml:actionGroupStartIndex>${wp.actionGroup.actionGroupStartIndex}</wpml:actionGroupStartIndex>
-        <wpml:actionGroupEndIndex>${wp.actionGroup.actionGroupEndIndex}</wpml:actionGroupEndIndex>
-        <wpml:actionGroupMode>${wp.actionGroup.actionGroupMode}</wpml:actionGroupMode>
-        <wpml:actionTrigger>
-        <wpml:actionTriggerType>${wp.actionGroup.actionTrigger.actionTriggerType}</wpml:actionTriggerType>
-        </wpml:actionTrigger>
-        
-        ${wp.actionGroup.actions.map((action: any, index: number) => renderAction(action, index)).join('\n')}
-      
-      </wpml:actionGroup>` : ''
-    }
-    
-    <wpml:isRisky>${wp.isRisky ? 1 : 0}</wpml:isRisky>
-  </Placemark>
-`;
 
   const renderPlacemarkTemplate = (wp: any, index: number) => `
     <Placemark>
