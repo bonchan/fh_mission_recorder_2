@@ -86,14 +86,17 @@ export const MissionVisualizer = ({ mission }: { mission: any }) => {
     });
 
     // 2. Determine Tile Grid based on Bounds
-    const startTileX = Math.floor(lonToTile(minLon, zoom));
-    const endTileX = Math.floor(lonToTile(maxLon, zoom));
-    // Y tiles increase going South, so maxLat is the smaller Y index
-    const startTileY = Math.floor(latToTile(maxLat, zoom));
-    const endTileY = Math.floor(latToTile(minLat, zoom));
+    // Subtract/Add 1 to create an extra "ring" of padding tiles around the mission
+    const padding = 1;
+    const startTileX = Math.floor(lonToTile(minLon, zoom)) - padding;
+    const endTileX = Math.floor(lonToTile(maxLon, zoom)) + padding;
 
-    // Limit the grid size so we don't crash the browser if points are very far apart
-    const maxTiles = 25; // 5x5 grid max
+    // Y tiles increase going South, so maxLat is the smaller Y index
+    const startTileY = Math.floor(latToTile(maxLat, zoom)) - padding;
+    const endTileY = Math.floor(latToTile(minLat, zoom)) + padding;
+
+    // Limit the grid size so we don't crash the browser
+    const maxTiles = 49; // Increased to 7x7 grid max to accommodate the extra ring
     if ((endTileX - startTileX + 1) * (endTileY - startTileY + 1) > maxTiles) {
       console.warn("Mission is too large to render full map grid at this zoom level.");
     }
@@ -219,14 +222,14 @@ export const MissionVisualizer = ({ mission }: { mission: any }) => {
       </div>
 
       <Canvas>
-        <PerspectiveCamera 
-          makeDefault 
+        <PerspectiveCamera
+          makeDefault
           fov={50}
           position={[
-            sceneData.center.x, 
-            sceneData.cameraHeight, 
-            sceneData.center.z + 0.01 
-          ]} 
+            sceneData.center.x,
+            sceneData.cameraHeight,
+            sceneData.center.z + 0.01
+          ]}
         />
 
         <ambientLight intensity={1.5} />
